@@ -1,0 +1,14 @@
+/osrs-cache
+/osrs-flatcache
+/runelite
+
+target
+nbactions.xml
+nb-configuration.xml
+/nbproject/
+project.properties
+*.iml
+.idea/
+.project
+.settings/
+.classpath
