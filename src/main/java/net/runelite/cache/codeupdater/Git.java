@@ -66,7 +66,7 @@ public class Git
 
 	public void commit(String message)
 	{
-		exec(true, "git", "commit", "--author=RuneLite Cache-Code Autoupdater <mii7303@gmail.com>", "-m", message);
+		exec(true, "git", "commit", "--author=RuneLite Cache-Code Autoupdater <mii7303+rlccau@gmail.com>", "-m", message);
 	}
 
 	public void commitUpdate(String object)
