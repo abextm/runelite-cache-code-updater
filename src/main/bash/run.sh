@@ -15,5 +15,5 @@ mvn install
 mvn exec:java -Dexec.args="$VERSION"
 
 pushd runelite
-git push origin
+git push --set-upstream origin "$(git rev-parse --abbrev-ref HEAD)"
 popd
