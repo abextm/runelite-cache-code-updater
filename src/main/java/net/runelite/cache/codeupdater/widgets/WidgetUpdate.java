@@ -80,7 +80,7 @@ public class WidgetUpdate
 		{
 			int group = groupEntry.getKey();
 
-			BiMap<InterfaceDefinition, InterfaceDefinition> mapping = Mapping.map(
+			Mapping<InterfaceDefinition> mapping = Mapping.of(
 				ImmutableList.copyOf(ifmOld.getIntefaceGroup(group)),
 				ImmutableList.copyOf(ifmNew.getIntefaceGroup(group)),
 				(a, b) ->
@@ -88,11 +88,12 @@ public class WidgetUpdate
 					double d = 0.d;
 					try
 					{
-						for (Field f : InterfaceDefinition.class.getFields())
+						Field[] fs = InterfaceDefinition.class.getFields();
+						for (Field f : fs)
 						{
 							if (!Objects.equals(f.get(a), f.get(b)))
 							{
-								d += 1.d;
+								d += 1.d / (double) fs.length;
 							}
 						}
 					}
@@ -109,7 +110,7 @@ public class WidgetUpdate
 				int child = childEntry.getKey();
 				try
 				{
-					InterfaceDefinition ifd = mapping.get(ifmOld.getInterface(group, child));
+					InterfaceDefinition ifd = mapping.getSame().get(ifmOld.getInterface(group, child));
 					if (ifd == null)
 					{
 						childEntry.getValue().replace(new IntegerLiteralExpr(-1));

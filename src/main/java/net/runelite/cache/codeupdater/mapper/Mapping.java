@@ -27,26 +27,53 @@ package net.runelite.cache.codeupdater.mapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.function.BiConsumer;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Mapping
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public class Mapping<T>
 {
 	@VisibleForTesting
 	static boolean printMap = false;
 
-	public static <T> BiMap<T, T> map(List<T> old, List<T> neew, Mapper<T> compare)
+	@Getter
+	private final BiMap<T, T> same = HashBiMap.create();
+
+	@Getter
+	private final List<T> oldOnly = new ArrayList<>();
+
+	@Getter
+	private final List<T> newOnly = new ArrayList<>();
+
+	@Getter
+	private final List<T> old;
+
+	private final List<T> neew;
+
+	private List<T> getNew()
 	{
+		return neew;
+	}
+
+	public static <T> Mapping<T> of(List<T> old, List<T> neew, Mapper<T> compare)
+	{
+		Mapping<T> mapping = new Mapping<>(old, neew);
+
 		if (old.size() <= 0 || neew.size() <= 0)
 		{
-			return HashBiMap.create();
+			return mapping;
 		}
 
 		int stride = neew.size() + 1;
-		int[] directions = new int[]{1, stride, stride + 1};
+		int[] directions = new int[]{stride + 1, 1, stride};
 		double[] dist = new double[stride * (old.size() + 1)];
 		int[] prev = new int[dist.length];
 		PriorityQueue<Integer> nodes = new PriorityQueue<>(dist.length, Comparator.comparingDouble((Integer a) -> dist[a]));
@@ -57,7 +84,7 @@ public class Mapping
 			{
 				dist[i] = Double.MAX_VALUE;
 			}
-			prev[i] = -1;
+			prev[i] = Integer.MIN_VALUE;
 		}
 
 		nodes.add(0);
@@ -81,13 +108,13 @@ public class Mapping
 
 				int oi = v / stride;
 				int ni = v % stride;
-				double alt = 0;
+				double alt = dist[u] + 1;
 				if (oi > 0 && ni > 0)
 				{
-					alt = dist[u] + compare.difference(
+					alt = dist[u] + (.1 + compare.difference(
 						old.get(oi - 1),
 						neew.get(ni - 1)
-					)/* + (Math.abs(oi - ni) / (double) dist.length)*/;
+					)) * (d == (stride + 1) ? 1.1 : 1.0);
 				}
 
 				if (alt < dist[v])
@@ -100,7 +127,76 @@ public class Mapping
 			}
 		}
 
-		BiMap<T, T> map = HashBiMap.create();
+		if (printMap)
+		{
+			System.out.println();
+			System.out.print("      |");
+			System.out.print("      |");
+			System.out.print("\033[41m");
+			for (int i = 1; i < stride; i++)
+			{
+				String str = "     " + neew.get(i - 1);
+				System.out.print(str.substring(str.length() - 6) + "|");
+			}
+			System.out.print("\033[0m");
+			for (int ii = 0; ii < dist.length; ii++)
+			{
+				if (ii % stride == 0)
+				{
+					System.out.println();
+					if (ii < stride)
+					{
+						System.out.print("      |");
+					}
+					else
+					{
+						String str = "     " + old.get((ii / stride) - 1);
+						System.out.print("\033[44m" + str.substring(str.length() - 6) + "|\033[0m");
+					}
+				}
+				if (dist[ii] == Double.MAX_VALUE)
+				{
+					System.out.print("      |");
+				}
+				else
+				{
+					String color = null;
+					for (int i = dist.length - 1; i >= 0; )
+					{
+						int n = prev[i];
+						if (i == ii)
+						{
+							int d = i - n;
+							if (d == stride + 1 || n == Integer.MIN_VALUE)
+							{
+								color = "\033[7m";
+							}
+							else if (d == 1)
+							{
+								color = "\033[41m";
+							}
+							else if (d == stride)
+							{
+								color = "\033[44m";
+							}
+							break;
+						}
+						i = n;
+					}
+					if (color != null)
+					{
+						System.out.print(color);
+					}
+					System.out.printf("%6.1f|", dist[ii]);
+					if (color != null)
+					{
+						System.out.print("\033[0m");
+					}
+				}
+			}
+			System.out.println();
+		}
+
 		int i = dist.length - 1;
 		for (; ; )
 		{
@@ -114,8 +210,25 @@ public class Mapping
 
 			if (d == stride + 1)
 			{
-				map.put(old.get((i / stride) - 1), neew.get((i % stride) - 1));
+				T ov = old.get((i / stride) - 1);
+				T nv = neew.get((i % stride) - 1);
+				mapping.same.put(ov, nv);
 			}
+			else if (d == 1)
+			{
+				T nv = neew.get((i % stride) - 1);
+				mapping.newOnly.add(nv);
+			}
+			else if (d == stride)
+			{
+				T ov = old.get((i / stride) - 1);
+				mapping.oldOnly.add(ov);
+			}
+			else
+			{
+				throw new IllegalStateException();
+			}
+
 			if (n == 0)
 			{
 				break;
@@ -123,26 +236,53 @@ public class Mapping
 			i = n;
 		}
 
-		if (printMap)
-		{
-			for (int ii = 0; ii < dist.length; ii++)
-			{
-				if (ii % stride == 0)
-				{
-					System.out.println();
-				}
-				if (dist[ii] == Double.MAX_VALUE)
-				{
-					System.out.print("      |");
-				}
-				else
-				{
-					System.out.printf("%6.1f|", dist[ii]);
-				}
-			}
-			System.out.println();
-		}
+		return mapping;
+	}
 
-		return map;
+	public void forEach(BiConsumer<T, T> consumer)
+	{
+		int oi = 0;
+		int ni = 0;
+		for (; ; )
+		{
+			boolean nend = ni >= neew.size();
+			boolean oend = oi >= old.size();
+
+			if (nend && oend)
+			{
+				return;
+			}
+
+			T o = oend ? null : old.get(oi);
+			T n = nend ? null : neew.get(ni);
+
+			if (oend || nend)
+			{
+				consumer.accept(o, n);
+				oi++;
+				ni++;
+				continue;
+			}
+
+			T map = same.get(o);
+
+			if (map == null)
+			{
+				consumer.accept(o, null);
+				oi++;
+				continue;
+			}
+
+			if (map != n)
+			{
+				consumer.accept(null, n);
+				ni++;
+				continue;
+			}
+
+			consumer.accept(o, n);
+			oi++;
+			ni++;
+		}
 	}
 }

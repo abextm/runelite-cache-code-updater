@@ -24,48 +24,90 @@
  */
 package net.runelite.cache.codeupdater.mapper;
 
-import com.google.common.collect.BiMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
-import org.antlr.v4.runtime.misc.MultiMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class MapperTest
 {
-	@Test
-	public void testMapper()
+	static
 	{
 		Mapping.printMap = true;
+	}
 
-		testMapping("new end",
+	@Test
+	public void testNewEnd()
+	{
+		testMapping(
 			1, 1,
 			2, 2,
 			3, 3,
 			4, 4,
 			null, 5
 		);
+	}
 
-		testMapping("new start",
+	@Test
+	public void testNewStart()
+	{
+		testMapping(
 			null, 0,
 			1, 1,
 			2, 2,
 			3, 3,
 			4, 4
 		);
+	}
 
-		testMapping("new middle",
-			1, 1,
+	@Test
+	public void testNewMiddle()
+	{
+		testMapping(
 			2, 2,
 			null, 3,
+			4, 4
+		);
+	}
+
+	@Test
+	public void testNewEndInverse()
+	{
+		testMapping(
+			1, 1,
+			2, 2,
+			3, 3,
+			4, 4,
+			5, null
+		);
+	}
+
+	@Test
+	public void testNewStartInverse()
+	{
+		testMapping(
+			0, null,
+			1, 1,
+			2, 2,
+			3, 3,
+			4, 4
+		);
+	}
+
+	@Test
+	public void testNewMiddleInverse()
+	{
+		testMapping(
+			1, 1,
+			2, 2,
+			3, null,
 			4, 4,
 			5, 5
 		);
 	}
 
-	private void testMapping(String name, Integer... t)
+	private void testMapping(Integer... t)
 	{
 		List<Integer> old = new ArrayList<>(t.length / 2);
 		List<Integer> neew = new ArrayList<>(t.length / 2);
@@ -84,15 +126,45 @@ public class MapperTest
 			}
 		}
 
-		BiMap<Integer, Integer> map = Mapping.map(old, neew, (a, b) -> Math.abs(a - b));
+		Mapping<Integer> map = Mapping.of(old, neew, (a, b) -> Math.abs(a - b));
+		List<Integer> expectedNewOnly = new ArrayList<>();
+		List<Integer> expectedOldOnly = new ArrayList<>();
 
 		for (int i = 0; i < t.length; i += 2)
 		{
-			if (t[i] != null)
+			String ident = "idx " + (i / 2) + ": " + t[i] + " <-> " + t[i + 1] + ": ";
+			if (t[i] == null)
 			{
-				Assert.assertEquals(name + ": " + t[i] + " @ " + (i / 2), map.get(t[i]), t[i + 1]);
+				expectedNewOnly.add(t[i + 1]);
+			}
+			else
+			{
+				Assert.assertEquals(ident + "old > new wrong", t[i + 1], map.getSame().get(t[i]));
+			}
+			if (t[i + 1] == null)
+			{
+				expectedOldOnly.add(t[i]);
+			}
+			else
+			{
+				Assert.assertEquals(ident + "new > old wrong", t[i], map.getSame().inverse().get(t[i + 1]));
 			}
 		}
-
+		Assert.assertEquals(
+			expectedNewOnly,
+			map.getNewOnly()
+		);
+		Assert.assertEquals(
+			expectedOldOnly,
+			map.getOldOnly()
+		);
+		AtomicInteger i = new AtomicInteger(0);
+		map.forEach((o, n) ->
+		{
+			int ii = i.getAndAdd(2);
+			String ident = "idx " + (ii / 2) + ": " + t[ii] + " <-> " + t[ii + 1] + ": ";
+			Assert.assertEquals(ident + "foreach old wrong", t[ii], o);
+			Assert.assertEquals(ident + "foreach new wrong", t[ii + 1], n);
+		});
 	}
 }
