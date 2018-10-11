@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2018, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,45 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater;
+package net.runelite.cache.codeupdater.script;
 
-import java.io.File;
-import java.io.IOException;
-import net.runelite.cache.codeupdater.apifiles.APIUpdate;
-import net.runelite.cache.codeupdater.script.ScriptUpdate;
-import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
-import net.runelite.cache.fs.Store;
-import net.runelite.cache.fs.flat.FlatStorage;
+import static net.runelite.api.Opcodes.RUNELITE_EXECUTE;
+import net.runelite.cache.script.Instructions;
 
-public class Main
+public class RuneLiteInstructions extends Instructions
 {
-	public static void main(String[] args) throws IOException
+	public static final RuneLiteInstructions instance = new RuneLiteInstructions();
+	static
 	{
-		File CACHE_DIR = new File("osrs-cache");
-		Git.cache.setWorkingDirectory(CACHE_DIR);
+		instance.init();
+	}
 
-		Store neew = new Store(new FlatStorage(CACHE_DIR));
-		neew.load();
-
-		Git.cache.checkout("HEAD^");
-		Store old = new Store(new FlatStorage(CACHE_DIR));
-		old.load();
-
-		Git.runelite.setWorkingDirectory(new File("runelite"));
-		Git.runelite.hardReset();
-		if (args.length > 0)
-		{
-			Git.versionString = args[0];
-			String branchname = "cache-code-" + Git.versionString.replace(' ','-').toLowerCase();
-			Git.runelite.branch(branchname);
-		}
-		else
-		{
-			Git.runelite.setLive(false);
-		}
-
-		APIUpdate.update(old, neew);
-		WidgetUpdate.update(old, neew);
-		ScriptUpdate.update(old, neew);
+	@Override
+	public void init()
+	{
+		super.init();
+		add(RUNELITE_EXECUTE, "runelite_callback", 0, 0, 1, 0);
 	}
 }

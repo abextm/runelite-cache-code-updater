@@ -1,0 +1,9 @@
+smnf .id                 0
+smnf .int_stack_count    0
+smnf .string_stack_count 0
+smnf .int_var_count      0
+smnf .string_var_count   0
+smnf    a                      1
+sm      b                      2
+ m f    c                      3
+smnf    d                      4

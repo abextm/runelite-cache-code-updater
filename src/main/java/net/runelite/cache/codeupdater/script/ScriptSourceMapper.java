@@ -22,45 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater;
+package net.runelite.cache.codeupdater.script;
 
-import java.io.File;
-import java.io.IOException;
-import net.runelite.cache.codeupdater.apifiles.APIUpdate;
-import net.runelite.cache.codeupdater.script.ScriptUpdate;
-import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
-import net.runelite.cache.fs.Store;
-import net.runelite.cache.fs.flat.FlatStorage;
 
-public class Main
+import java.util.Objects;
+import net.runelite.cache.codeupdater.mapper.Mapper;
+import net.runelite.cache.script.Instruction;
+
+public class ScriptSourceMapper implements Mapper<ScriptSource.Line>
 {
-	public static void main(String[] args) throws IOException
+	@Override
+	public double difference(ScriptSource.Line a, ScriptSource.Line b)
 	{
-		File CACHE_DIR = new File("osrs-cache");
-		Git.cache.setWorkingDirectory(CACHE_DIR);
+		Instruction aii = a.getInstruction();
+		String ai = aii == null ? a.getOpcode() : aii.getName();
+		Instruction bii = b.getInstruction();
+		String bi = bii == null ? b.getOpcode() : bii.getName();
 
-		Store neew = new Store(new FlatStorage(CACHE_DIR));
-		neew.load();
+		double sim = 0;
 
-		Git.cache.checkout("HEAD^");
-		Store old = new Store(new FlatStorage(CACHE_DIR));
-		old.load();
-
-		Git.runelite.setWorkingDirectory(new File("runelite"));
-		Git.runelite.hardReset();
-		if (args.length > 0)
+		if (Objects.equals(ai, bi))
 		{
-			Git.versionString = args[0];
-			String branchname = "cache-code-" + Git.versionString.replace(' ','-').toLowerCase();
-			Git.runelite.branch(branchname);
-		}
-		else
-		{
-			Git.runelite.setLive(false);
+			sim += .7;
+			if (Objects.equals(a.getOperand(), b.getOperand()))
+			{
+				sim += .3;
+			}
 		}
 
-		APIUpdate.update(old, neew);
-		WidgetUpdate.update(old, neew);
-		ScriptUpdate.update(old, neew);
+		return 1 - sim;
 	}
 }

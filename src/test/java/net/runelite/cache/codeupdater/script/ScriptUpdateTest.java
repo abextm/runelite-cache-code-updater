@@ -22,45 +22,68 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater;
+package net.runelite.cache.codeupdater.script;
 
-import java.io.File;
-import java.io.IOException;
-import net.runelite.cache.codeupdater.apifiles.APIUpdate;
-import net.runelite.cache.codeupdater.script.ScriptUpdate;
-import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
-import net.runelite.cache.fs.Store;
-import net.runelite.cache.fs.flat.FlatStorage;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class Main
+public class ScriptUpdateTest
 {
-	public static void main(String[] args) throws IOException
+	@Test
+	public void insertion()
 	{
-		File CACHE_DIR = new File("osrs-cache");
-		Git.cache.setWorkingDirectory(CACHE_DIR);
+		testScript("insertion.txt");
+	}
 
-		Store neew = new Store(new FlatStorage(CACHE_DIR));
-		neew.load();
+	@Test
+	public void nearby1()
+	{
+		testScript("nearby1.txt");
+	}
 
-		Git.cache.checkout("HEAD^");
-		Store old = new Store(new FlatStorage(CACHE_DIR));
-		old.load();
+	@Test
+	public void nearby2()
+	{
+		testScript("nearby2.txt");
+	}
 
-		Git.runelite.setWorkingDirectory(new File("runelite"));
-		Git.runelite.hardReset();
-		if (args.length > 0)
+	@Test
+	public void commandScript()
+	{
+		testScript("commandscript.rs2asm");
+	}
+
+	private void testScript(String name)
+	{
+		Map<Character, StringBuilder> fis = new HashMap<>();
+		for (char c : new char[]{'s', 'm', 'n', 'f'})
 		{
-			Git.versionString = args[0];
-			String branchname = "cache-code-" + Git.versionString.replace(' ','-').toLowerCase();
-			Git.runelite.branch(branchname);
+			fis.put(c, new StringBuilder());
 		}
-		else
-		{
-			Git.runelite.setLive(false);
-		}
+		new BufferedReader(new InputStreamReader(ScriptUpdateTest.class.getResourceAsStream(name))).lines()
+			.forEach(l -> {
+				String line = l.substring(5);
+				byte[] ident = l.substring(0, 4).getBytes();
+				for (byte c : ident)
+				{
+					if (c != ' ')
+					{
+						fis.get((char)c).append(line).append('\n');
+					}
+				}
+			});
 
-		APIUpdate.update(old, neew);
-		WidgetUpdate.update(old, neew);
-		ScriptUpdate.update(old, neew);
+
+		String out = ScriptUpdate.updateScript(
+			new ScriptSource(fis.get('s').toString()),
+			new ScriptSource(fis.get('n').toString()),
+			new ScriptSource(fis.get('m').toString())
+		);
+
+		Assert.assertEquals(fis.get('f').toString(), out);
 	}
 }
