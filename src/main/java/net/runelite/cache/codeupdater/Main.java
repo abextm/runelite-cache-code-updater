@@ -38,13 +38,12 @@ public class Main
 		File CACHE_DIR = new File("osrs-cache");
 		Git.cache.setWorkingDirectory(CACHE_DIR);
 
-		Git.cache.checkout("master^");
-		Store old = new Store(new FlatStorage(CACHE_DIR));
-		old.load();
-
-		Git.cache.checkout("master");
 		Store neew = new Store(new FlatStorage(CACHE_DIR));
 		neew.load();
+
+		Git.cache.checkout("HEAD^");
+		Store old = new Store(new FlatStorage(CACHE_DIR));
+		old.load();
 
 		Git.runelite.setWorkingDirectory(new File("runelite"));
 		Git.runelite.hardReset();
