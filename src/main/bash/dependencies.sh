@@ -11,7 +11,14 @@ pushd osrs-cache
 popd
 fi
 
-git clone git@github.com:Abextm/runelite.git
+if [[ -n ${DO_RELEASE+x} ]]; then
+	openssl aes-256-cbc -K $encrypted_79e0d10388c8_key -iv $encrypted_79e0d10388c8_iv -in abextm.runelite.pem.enc -out abextm.runelite.pem -d
+	chmod 600 abextm.runelite.pem
+	ssh-add abextm.runelite.pem
+	git clone git@github.com:Abextm/runelite.git
+else
+	git clone https://github.com/Abextm/runelite.git
+fi
 pushd runelite
 git remote add upstream https://github.com/runelite/runelite.git
 git fetch upstream
