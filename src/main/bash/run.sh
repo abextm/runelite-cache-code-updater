@@ -24,3 +24,9 @@ if [[ -n ${DO_RELEASE+x} ]]; then
 	git push --set-upstream origin "$(git rev-parse --abbrev-ref HEAD)"
 fi
 popd
+
+pushd static.runelite.net
+if [[ -n ${DO_RELEASE+x} ]]; then
+	git push --set-upstream origin "$(git rev-parse --abbrev-ref HEAD)"
+fi
+popd

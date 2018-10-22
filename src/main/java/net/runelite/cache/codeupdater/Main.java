@@ -28,15 +28,17 @@ import java.io.File;
 import java.io.IOException;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
+import net.runelite.cache.codeupdater.srn.SRNUpdate;
 import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.fs.flat.FlatStorage;
 
 public class Main
 {
+	private static final File CACHE_DIR = new File("osrs-cache");
+
 	public static void main(String[] args) throws IOException
 	{
-		File CACHE_DIR = new File("osrs-cache");
 		Git.cache.setWorkingDirectory(CACHE_DIR);
 
 		Store neew = new Store(new FlatStorage(CACHE_DIR));
@@ -48,19 +50,24 @@ public class Main
 
 		Git.runelite.setWorkingDirectory(new File("runelite"));
 		Git.runelite.hardReset();
+		Git.srn.setWorkingDirectory(new File("static.runelite.net"));
+		Git.srn.hardReset();
 		if (args.length > 0)
 		{
 			Git.versionString = args[0];
 			String branchname = "cache-code-" + Git.versionString.replace(' ','-').toLowerCase();
 			Git.runelite.branch(branchname);
+			Git.srn.branch(branchname);
 		}
 		else
 		{
 			Git.runelite.setLive(false);
+			Git.srn.setLive(false);
 		}
 
 		APIUpdate.update(old, neew);
 		WidgetUpdate.update(old, neew);
 		ScriptUpdate.update(old, neew);
+		SRNUpdate.update(neew);
 	}
 }

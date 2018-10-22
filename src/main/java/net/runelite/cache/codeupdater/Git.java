@@ -33,6 +33,7 @@ public class Git
 {
 	public static String versionString = "";
 	public static Git runelite = new Git();
+	public static Git srn = new Git();
 	public static Git cache = new Git();
 
 	@Getter
