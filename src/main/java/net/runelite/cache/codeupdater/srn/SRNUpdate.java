@@ -152,6 +152,8 @@ public class SRNUpdate
 			));
 
 		String itemNameJSON = new GsonBuilder()
+			.disableHtmlEscaping()
+			.setPrettyPrinting()
 			.create()
 			.toJson(itemNames);
 		Files.write(namesFile.toPath(), itemNameJSON.getBytes(Charsets.UTF_8));
