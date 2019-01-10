@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2019 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,50 +24,118 @@
  */
 package net.runelite.cache.codeupdater;
 
-import java.io.File;
-import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
+import net.runelite.cache.codeupdater.git.GitUtil;
+import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
 import net.runelite.cache.codeupdater.srn.SRNUpdate;
 import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
 import net.runelite.cache.fs.Store;
-import net.runelite.cache.fs.flat.FlatStorage;
+import org.eclipse.jgit.lib.Repository;
 
+@Slf4j
 public class Main
 {
-	private static final File CACHE_DIR = new File("osrs-cache");
+	public static Store next;
+	public static Store previous;
 
-	public static void main(String[] args) throws IOException
+	public static String branchName;
+	public static String versionText;
+
+	public static ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 2);
+
+	public static void main(String[] args) throws Exception
 	{
-		Git.cache.setWorkingDirectory(CACHE_DIR);
-
-		Store neew = new Store(new FlatStorage(CACHE_DIR));
-		neew.load();
-
-		Git.cache.checkout("HEAD^");
-		Store old = new Store(new FlatStorage(CACHE_DIR));
-		old.load();
-
-		Git.runelite.setWorkingDirectory(new File("runelite"));
-		Git.runelite.hardReset();
-		Git.srn.setWorkingDirectory(new File("static.runelite.net"));
-		Git.srn.hardReset();
-		if (args.length > 0)
+		try
 		{
-			Git.versionString = args[0];
-			String branchname = "cache-code-" + Git.versionString.replace(' ','-').toLowerCase();
-			Git.runelite.branch(branchname);
-			Git.srn.branch(branchname);
-		}
-		else
-		{
-			Git.runelite.setLive(false);
-			Git.srn.setLive(false);
-		}
+			String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
+			String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
 
-		APIUpdate.update(old, neew);
-		WidgetUpdate.update(old, neew);
-		ScriptUpdate.update(old, neew);
-		SRNUpdate.update(neew);
+			next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
+			previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+
+			String oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
+
+			versionText = oneline.replace("Cache version ", "");
+			branchName = GitUtil.envOr("BRANCH_NAME", "cache-code-" + versionText);
+
+			updateRunelite();
+
+			updateSRN();
+		}
+		finally
+		{
+			exec.shutdown();
+			exec.awaitTermination(5000, TimeUnit.MILLISECONDS);
+			Repo.closeAll();
+		}
+	}
+
+	private static void updateRunelite() throws Exception
+	{
+		log.info("Starting runelite update on branch {}", branchName);
+		Repository rl = Repo.RUNELITE.get();
+		Repo.RUNELITE.branch(branchName);
+
+		execAllAndWait(
+			APIUpdate::update,
+			WidgetUpdate::update,
+			ScriptUpdate::update
+		);
+
+		GitUtil.pushBranch(rl, branchName);
+	}
+
+	private static void updateSRN() throws Exception
+	{
+		log.info("Starting static.runelite.net update on branch {}", branchName);
+		Repository srn = Repo.SRN.get();
+		Repo.SRN.branch(branchName);
+
+		SRNUpdate.update();
+
+		GitUtil.pushBranch(srn, branchName);
+	}
+
+	public interface RunAndThrow
+	{
+		void run() throws Exception;
+	}
+
+	public static <T extends Exception> void execAllAndWait(RunAndThrow... runnables) throws T
+	{
+		execAllAndWait(Stream.of(runnables));
+	}
+
+	public static <T extends Exception> void execAllAndWait(Stream<RunAndThrow> runnables) throws T
+	{
+		List<Future<?>> futs = runnables.map(r -> exec.submit(() -> {
+			r.run();
+			return null;
+		})).collect(Collectors.toList());
+		for (Future<?> fut : futs)
+		{
+			try
+			{
+				fut.get();
+			}
+			catch (ExecutionException e)
+			{
+				throw (T) e.getCause();
+			}
+			catch (InterruptedException e)
+			{
+				throw new RuntimeException(e);
+			}
+		}
 	}
 }

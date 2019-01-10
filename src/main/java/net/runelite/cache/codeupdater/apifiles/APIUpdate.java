@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2019 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,43 +24,52 @@
  */
 package net.runelite.cache.codeupdater.apifiles;
 
+import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import net.runelite.cache.ItemManager;
 import net.runelite.cache.NpcManager;
 import net.runelite.cache.ObjectManager;
-import net.runelite.cache.codeupdater.Git;
-import net.runelite.cache.fs.Store;
+import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.MutableCommit;
+import net.runelite.cache.codeupdater.git.Repo;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Repository;
 
 public class APIUpdate
 {
-	public static void update(Store old, Store neew) throws IOException
+	public static void update() throws IOException, GitAPIException
 	{
-		File apiDir = new File("runelite/runelite-api/src/main/java/net/runelite/api");
+		Repository repo = Repo.RUNELITE.get();
+		String repoPath = "runelite-api/src/main/java/net/runelite/api/";
+		File tmp = Files.createTempDir();
 
 		{
-			ItemManager im = new ItemManager(neew);
+			ItemManager im = new ItemManager(Main.next);
 			im.load();
-			im.java(apiDir);
-			Git.runelite.add(new File(apiDir, "ItemID.java"));
-			Git.runelite.commitUpdate("Item IDs");
+			im.java(tmp);
+			MutableCommit mc = new MutableCommit("Item IDs");
+			mc.writeFileInDir(repoPath, tmp, "ItemID.java");
+			mc.writeFileInDir(repoPath, tmp, "NullItemID.java");
+			mc.finish(repo, Main.branchName);
 		}
-
 		{
-			ObjectManager om = new ObjectManager(neew);
+			ObjectManager om = new ObjectManager(Main.next);
 			om.load();
-			om.java(apiDir);
-			Git.runelite.add(new File(apiDir, "ObjectID.java"));
-			Git.runelite.add(new File(apiDir, "NullObjectID.java"));
-			Git.runelite.commitUpdate("Object IDs");
+			om.java(tmp);
+			MutableCommit mc = new MutableCommit("Object IDs");
+			mc.writeFileInDir(repoPath, tmp, "ObjectID.java");
+			mc.writeFileInDir(repoPath, tmp, "NullObjectID.java");
+			mc.finish(repo, Main.branchName);
 		}
 
 		{
-			NpcManager nm = new NpcManager(neew);
+			NpcManager nm = new NpcManager(Main.next);
 			nm.load();
-			nm.java(apiDir);
-			Git.runelite.add(new File(apiDir, "NpcID.java"));
-			Git.runelite.commitUpdate("NPC IDs");
+			nm.java(tmp);
+			MutableCommit mc = new MutableCommit("NPC IDs");
+			mc.writeFileInDir(repoPath, tmp, "NpcID.java");
+			mc.finish(repo, Main.branchName);
 		}
 	}
 }

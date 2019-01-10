@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2019 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,29 +43,33 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.InterfaceManager;
-import net.runelite.cache.codeupdater.Git;
 import net.runelite.cache.codeupdater.JavaFile;
+import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.MutableCommit;
+import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.mapper.Mapping;
 import net.runelite.cache.definitions.InterfaceDefinition;
-import net.runelite.cache.fs.Store;
+import org.eclipse.jgit.lib.Repository;
 
 @Slf4j
 public class WidgetUpdate
 {
-
-	public static void update(Store old, Store neew) throws IOException
+	public static void update() throws IOException
 	{
-		InterfaceManager ifmOld = new InterfaceManager(old);
+		InterfaceManager ifmOld = new InterfaceManager(Main.previous);
 		ifmOld.load();
-		InterfaceManager ifmNew = new InterfaceManager(neew);
+		InterfaceManager ifmNew = new InterfaceManager(Main.next);
 		ifmNew.load();
 
-		JavaFile widgetInfoCU = new JavaFile("runelite/runelite-api/src/main/java/net/runelite/api/widgets/WidgetInfo.java");
-		JavaFile widgetIDCU = new JavaFile("runelite/runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java");
+		Repository rl = Repo.RUNELITE.get();
+
+		JavaFile widgetInfoCU = new JavaFile(rl, Main.branchName, "runelite-api/src/main/java/net/runelite/api/widgets/WidgetInfo.java");
+		JavaFile widgetIDCU = new JavaFile(rl, Main.branchName, "runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java");
+		MutableCommit mc = new MutableCommit("Widget IDs");
 
 		Map<Integer, Map<Integer, IntegerLiteralExpr>> groupChildDecls = new HashMap<>();
 
-		EnumDeclaration widgetInfo = (EnumDeclaration) widgetInfoCU.getCompilationUnit().getPrimaryType().get();
+		EnumDeclaration widgetInfo = (EnumDeclaration) widgetInfoCU.getCompilationUnit().getTypes().get(0);
 		for (EnumConstantDeclaration decl : widgetInfo.getEntries())
 		{
 			int group = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(0)).asInt();
@@ -113,7 +117,7 @@ public class WidgetUpdate
 					if (ifd == null)
 					{
 						childEntry.getValue().replace(new IntegerLiteralExpr(-1));
-						log.warn("Lost widget {}:{}", group, child);
+						mc.log("Lost widget {}.{}", group, child);
 					}
 					else
 					{
@@ -122,17 +126,14 @@ public class WidgetUpdate
 				}
 				catch (Exception e)
 				{
-					log.warn("Error mapping {}.{}", group, child, e);
+					mc.log("Error mapping {}.{}: {}", group, child, e);
 				}
 			}
 		}
 
-		widgetInfoCU.save();
-		widgetIDCU.save();
-
-		Git.runelite.add(widgetInfoCU.getFile());
-		Git.runelite.add(widgetIDCU.getFile());
-		Git.runelite.commitUpdate("Widget IDs");
+		widgetInfoCU.save(mc);
+		widgetIDCU.save(mc);
+		mc.finish(rl, Main.branchName);
 	}
 
 	private static IntegerLiteralExpr resolveFieldAccess(CompilationUnit widgetIDCU, Node n)

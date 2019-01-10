@@ -4,8 +4,10 @@ dist: trusty
 cache:
   directories:
     - $HOME/.m2
+    - osrs-cache
+    - runelite
+    - static.runelite.net
 jdk:
 - oraclejdk8
-before_install: eval "$(ssh-agent -s)"
-install: bash src/main/bash/dependencies.sh
-script: bash src/main/bash/run.sh
+install: true
+script: bash src/main/bash/travis.sh

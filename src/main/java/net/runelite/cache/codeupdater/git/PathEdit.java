@@ -22,42 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater;
+package net.runelite.cache.codeupdater.git;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import java.io.IOException;
-import lombok.Getter;
-import net.runelite.cache.codeupdater.git.GitUtil;
-import net.runelite.cache.codeupdater.git.MutableCommit;
-import org.eclipse.jgit.lib.Repository;
+import java.util.function.Consumer;
+import org.eclipse.jgit.dircache.DirCacheEditor;
+import org.eclipse.jgit.dircache.DirCacheEntry;
 
-public class JavaFile
+public class PathEdit extends DirCacheEditor.PathEdit
 {
-	static
+	private final Consumer<DirCacheEntry> editor;
+
+	public PathEdit(String path, Consumer<DirCacheEntry> editor)
 	{
-		JavaParser.getStaticConfiguration().setLexicalPreservationEnabled(true);
-		JavaParser.getStaticConfiguration().setAttributeComments(false);
+		super(path);
+		this.editor = editor;
 	}
 
-	@Getter
-	private final CompilationUnit compilationUnit;
-
-	@Getter
-	private final String path;
-
-	public JavaFile(Repository repo, String commitish, String file) throws IOException
+	@Override
+	public void apply(DirCacheEntry ent)
 	{
-		this.path = file;
-		byte[] data = GitUtil.readFile(repo, commitish, path);
-		this.compilationUnit = JavaParser.parse(new String(data));
-		LexicalPreservingPrinter.setup(this.compilationUnit);
-	}
-
-	public void save(MutableCommit mc)
-	{
-		String str = LexicalPreservingPrinter.print(compilationUnit);
-		mc.writeFile(path, str.getBytes());
+		editor.accept(ent);
 	}
 }

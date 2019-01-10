@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2019 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,33 +24,32 @@
  */
 package net.runelite.cache.codeupdater.srn;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.io.MoreFiles;
-import com.google.common.io.RecursiveDeleteOption;
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Objects;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.IndexType;
 import net.runelite.cache.ItemManager;
 import net.runelite.cache.SpriteManager;
 import net.runelite.cache.TextureManager;
-import net.runelite.cache.codeupdater.Git;
+import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.MutableCommit;
+import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.definitions.ItemDefinition;
 import net.runelite.cache.definitions.ModelDefinition;
+import net.runelite.cache.definitions.SpriteDefinition;
+import net.runelite.cache.definitions.TextureDefinition;
 import net.runelite.cache.definitions.loaders.ModelLoader;
 import net.runelite.cache.definitions.providers.ModelProvider;
 import net.runelite.cache.fs.Archive;
@@ -61,39 +60,24 @@ import net.runelite.cache.item.ItemSpriteFactory;
 @Slf4j
 public class SRNUpdate
 {
-	public static void update(Store store) throws IOException
+	private static ModelProvider modelProvider(Store store)
 	{
-		File rootDir = new File("static.runelite.net/cache");
-		File itemIconDir = new File(rootDir, "item/icon");
-		File namesFile = new File(rootDir, "item/names.json");
-		if (itemIconDir.exists())
-		{
-			MoreFiles.deleteDirectoryContents(itemIconDir.toPath(), RecursiveDeleteOption.ALLOW_INSECURE);
-		}
-		else
-		{
-			itemIconDir.mkdirs();
-		}
-
-		ItemManager itemManager = new ItemManager(store);
-		itemManager.load();
-
-		ModelProvider modelProvider = modelId -> {
-			Index models = store.getIndex(IndexType.MODELS);
+		Index models = store.getIndex(IndexType.MODELS);
+		ModelLoader ml = new ModelLoader();
+		return modelId -> {
 			Archive archive = models.getArchive(modelId);
-
+			if (archive == null)
+			{
+				return null;
+			}
 			byte[] data = archive.decompress(store.getStorage().loadArchive(archive));
-			ModelDefinition inventoryModel = new ModelLoader().load(modelId, data);
-			return inventoryModel;
+			return ml.load(modelId, data);
 		};
+	}
 
-		SpriteManager spriteManager = new SpriteManager(store);
-		spriteManager.load();
-
-		TextureManager textureManager = new TextureManager(store);
-		textureManager.load();
-
-		Collection<ItemDefinition> items = itemManager.getItems();
+	private static Map<Integer, ItemDefinition> filterAndMapForCount(ItemManager im)
+	{
+		Collection<ItemDefinition> items = im.getItems();
 		Map<Integer, ItemDefinition> itemIDs = new HashMap<>(items.size());
 		for (ItemDefinition d : items)
 		{
@@ -112,6 +96,10 @@ public class SRNUpdate
 				int hiObj = d.id;
 				for (int i = 0; i < 10; i++)
 				{
+					if (d.countCo[i] == 0)
+					{
+						continue;
+					}
 					itemIDs.remove(d.countObj[i]);
 					if (hiCo <= d.countCo[i])
 					{
@@ -119,36 +107,127 @@ public class SRNUpdate
 						hiCo = d.countCo[i];
 					}
 				}
-				itemIDs.put(d.id, itemManager.getItem(hiObj));
+				itemIDs.put(d.id, im.getItem(hiObj));
 			}
 		}
+		return itemIDs;
+	}
 
-		itemIDs.entrySet()
-			.stream()
-			.parallel()
-			.forEach(i ->
+	public static void update() throws IOException
+	{
+		ItemManager nim = new ItemManager(Main.next);
+		nim.load();
+		Map<Integer, ItemDefinition> nis = filterAndMapForCount(nim);
+		ModelProvider nmm = modelProvider(Main.next);
+		SpriteManager nsm = new SpriteManager(Main.next);
+		nsm.load();
+		TextureManager ntm = new TextureManager(Main.next);
+		ntm.load();
+
+		ItemManager pim = new ItemManager(Main.previous);
+		pim.load();
+		Map<Integer, ItemDefinition> pis = filterAndMapForCount(pim);
+		ModelProvider pmm = modelProvider(Main.previous);
+		SpriteManager psm = new SpriteManager(Main.previous);
+		psm.load();
+		TextureManager ptm = new TextureManager(Main.previous);
+		ptm.load();
+
+		MutableCommit imCommit = new MutableCommit("Item Icons");
+
+		IntPredicate isSpriteChanged = sid -> {
+			SpriteDefinition nsd = nsm.findSprite(sid, 0);
+			SpriteDefinition psd = psm.findSprite(sid, 0);
+			return !Objects.equals(nsd, psd);
+		};
+
+		IntPredicate isTextureChanged = tid -> {
+			TextureDefinition ntd = ntm.findTexture(tid);
+			TextureDefinition ptd = ptm.findTexture(tid);
+			if (!Objects.equals(ntd, ptd))
 			{
+				return true;
+			}
+			if (ntd == null)
+			{
+				return false;
+			}
+			return IntStream.of(ntd.getFileIds()).anyMatch(isSpriteChanged);
+
+		};
+
+		Predicate<short[]> anyTextureChanged = tids -> {
+			if (tids == null)
+			{
+				return false;
+			}
+
+			for (short tid : tids)
+			{
+				if (isTextureChanged.test(tid))
+				{
+					return true;
+				}
+			}
+			return false;
+		};
+
+		IntPredicate isModelChanged = mid -> {
+			try
+			{
+				ModelDefinition nmd = nmm.provide(mid);
+				ModelDefinition pmd = pmm.provide(mid);
+				if (!Objects.equals(nmd, pmd))
+				{
+					return true;
+				}
+				return anyTextureChanged.test(nmd.faceTextures);
+			}
+			catch (IOException e)
+			{
+				throw new RuntimeException(e);
+			}
+		};
+
+		Main.execAllAndWait(nis.entrySet().stream()
+			.filter(item -> {
+				ItemDefinition nid = item.getValue();
+				ItemDefinition pid = pis.get(item.getKey());
+				if (!nid.equals(pid))
+				{
+					return true;
+				}
+				if (anyTextureChanged.test(nid.textureReplace))
+				{
+					return true;
+				}
+				return isModelChanged.test(nid.inventoryModel);
+			})
+			.map(item -> () -> {
 				try
 				{
+					imCommit.log("{},", item.getKey());
 					BufferedImage img = ItemSpriteFactory.createSprite(
-						itemManager, modelProvider, spriteManager, textureManager,
-						i.getValue().id, 0, 1, 0x302020, false);
-					ImageIO.write(img, "png", new File(itemIconDir, i.getKey() + ".png"));
+						nim, nmm, nsm, ntm,
+						item.getValue().id, 0, 1, 0x302020, false);
+					try (OutputStream os = imCommit.writeFile("cache/item/icon/" + item.getKey() + ".png"))
+					{
+						ImageIO.write(img, "png", os);
+					}
 				}
 				catch (Exception e)
 				{
-					log.warn("Unable to create sprite for {} ({})", i.getKey(), i.getValue().id, e);
+					log.warn("Unable to create sprite for {} ({})", item.getKey(), item.getValue().id, e);
 				}
-			});
+			}));
 
-		Git.srn.add(itemIconDir);
-		Git.srn.commitUpdate("Item Icons");
+		imCommit.finish(Repo.SRN.get(), Main.branchName);
 
-		Map<Integer, String> itemNames = items.stream()
+		Map<Integer, String> itemNames = nim.getItems().stream()
 			.filter(i -> !Strings.isNullOrEmpty(i.name) && !"null".equalsIgnoreCase(i.name))
 			.collect(ImmutableMap.toImmutableMap(
-				i->i.id,
-				i->i.name
+				i -> i.id,
+				i -> i.name
 			));
 
 		String itemNameJSON = new GsonBuilder()
@@ -156,9 +235,9 @@ public class SRNUpdate
 			.setPrettyPrinting()
 			.create()
 			.toJson(itemNames);
-		Files.write(namesFile.toPath(), itemNameJSON.getBytes(Charsets.UTF_8));
 
-		Git.srn.add(namesFile);
-		Git.srn.commitUpdate("Item Names");
+		MutableCommit nameCommit = new MutableCommit("Item Names");
+		nameCommit.writeFile("cache/item/names.json", itemNameJSON.getBytes());
+		nameCommit.finish(Repo.SRN.get(), Main.branchName);
 	}
 }

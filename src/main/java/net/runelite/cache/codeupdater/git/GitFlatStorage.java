@@ -22,42 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater;
+package net.runelite.cache.codeupdater.git;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import java.io.IOException;
-import lombok.Getter;
-import net.runelite.cache.codeupdater.git.GitUtil;
-import net.runelite.cache.codeupdater.git.MutableCommit;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+import net.runelite.cache.fs.flat.FlatStorage;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 
-public class JavaFile
+public class GitFlatStorage extends FlatStorage
 {
-	static
+	private final Repository repo;
+	private final Map<String, ObjectId> files;
+
+	GitFlatStorage(Repository repo, String commitish) throws IOException
 	{
-		JavaParser.getStaticConfiguration().setLexicalPreservationEnabled(true);
-		JavaParser.getStaticConfiguration().setAttributeComments(false);
+		this.repo = repo;
+		this.files = GitUtil.listDirectory(repo, commitish, "", n -> n.endsWith(EXTENSION));
 	}
 
-	@Getter
-	private final CompilationUnit compilationUnit;
-
-	@Getter
-	private final String path;
-
-	public JavaFile(Repository repo, String commitish, String file) throws IOException
+	@Override
+	protected String[] listFlatcacheFiles() throws IOException
 	{
-		this.path = file;
-		byte[] data = GitUtil.readFile(repo, commitish, path);
-		this.compilationUnit = JavaParser.parse(new String(data));
-		LexicalPreservingPrinter.setup(this.compilationUnit);
+		return files.keySet().toArray(new String[0]);
 	}
 
-	public void save(MutableCommit mc)
+	@Override
+	protected InputStream openReader(String filename) throws IOException
 	{
-		String str = LexicalPreservingPrinter.print(compilationUnit);
-		mc.writeFile(path, str.getBytes());
+		return repo.open(files.get(filename)).openStream();
+	}
+
+	@Override
+	protected OutputStream openWriter(String filename) throws IOException
+	{
+		throw new AssertionError("unimplemented");
 	}
 }

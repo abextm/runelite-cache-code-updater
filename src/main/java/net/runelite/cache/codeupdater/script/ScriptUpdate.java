@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Abex
+ * Copyright (c) 2019 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,34 +25,21 @@
 package net.runelite.cache.codeupdater.script;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.ref.Reference;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.IndexType;
-import net.runelite.cache.codeupdater.Git;
+import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.GitUtil;
+import net.runelite.cache.codeupdater.git.MutableCommit;
+import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.mapper.Mapping;
 import net.runelite.cache.definitions.loaders.ScriptLoader;
 import net.runelite.cache.fs.Archive;
@@ -61,100 +48,114 @@ import net.runelite.cache.fs.Storage;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.script.Instruction;
 import net.runelite.cache.script.assembler.Assembler;
+import net.runelite.cache.script.disassembler.Disassembler;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Repository;
 
 @Slf4j
 public class ScriptUpdate
 {
-	public static void update(Store old, Store neew) throws IOException
+	public static void update() throws IOException, GitAPIException
 	{
 		ScriptLoader loader = new ScriptLoader();
-		ExecutorService tp = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-		File scriptDir = new File("runelite/runelite-client/src/main/scripts");
-		List<Future<?>> scripts = new ArrayList<>();
-		Object gitLock = new Object();
-		for (File hashFile : scriptDir.listFiles((dir, name) -> name.endsWith(".hash")))
-		{
-			File scriptFile = new File(hashFile.getPath().replace(".hash", ".rs2asm"));
-			scripts.add(tp.submit(() ->
-			{
+		String root = "runelite-client/src/main/scripts";
+		Repository rl = Repo.RUNELITE.get();
+
+		MutableCommit mc = new MutableCommit("Scripts");
+		MutableCommit oldDelta = new MutableCommit("Old vanilla ", false);
+		MutableCommit newDelta = new MutableCommit("New vanilla ", false);
+
+		Main.execAllAndWait(GitUtil.listDirectory(rl, Main.branchName, root, n -> n.endsWith(".hash"))
+			.entrySet()
+			.stream()
+			.map(ent -> () -> {
+				String hashFile = ent.getKey();
+				String scriptFile = hashFile.replace(".hash", ".rs2asm");
+				String scriptFilePath = GitUtil.pathJoin(root, scriptFile);
+
+				byte[] rs2asmSrc = GitUtil.readFile(rl, Main.branchName, scriptFilePath);
+				ScriptSource oldModSource = new ScriptSource(new String(rs2asmSrc));
+
+				int id = Integer.parseInt(oldModSource.getHeader().get(".id"));
+
+				String thash;
+				try (ObjectReader or = rl.newObjectReader())
+				{
+					thash = new String(or.open(ent.getValue()).getBytes()).trim();
+				}
+
+				byte[] oData = get(Main.previous, id);
+				String ohash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(oData).asBytes());
+
+				if (!thash.equals(ohash))
+				{
+					mc.log("old cache hash does not match hash in tree. {} != {}", ohash, thash);
+					return;
+				}
+
+				byte[] nData = get(Main.next, id);
+				String nhash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(nData).asBytes());
+
+				if (nhash.equals(ohash))
+				{
+					return;
+				}
+
+				Disassembler disassembler = new Disassembler();
+
+				String oldSrcStr = disassembler.disassemble(loader.load(id, oData));
+				ScriptSource oldSource = new ScriptSource(oldSrcStr);
+				oldDelta.writeFile(scriptFilePath, oldSrcStr.getBytes());
+
+				String newSrcStr = disassembler.disassemble(loader.load(id, nData));
+				ScriptSource newSource = new ScriptSource(newSrcStr);
+				newDelta.writeFile(scriptFilePath, newSrcStr.getBytes());
+
+				String newModSource = updateScript(oldSource, newSource, oldModSource);
+
+				// Just make sure it atleast assembles still
 				try
 				{
-					ScriptSource oldModSource = new ScriptSource(new String(Files.readAllBytes(scriptFile.toPath())));
-					int id = Integer.parseInt(oldModSource.getHeader().get(".id"));
-
-					String thash = new String(Files.readAllBytes(hashFile.toPath())).trim();
-
-					byte[] oData = get(old, id);
-					String ohash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(oData).asBytes());
-
-					if (!thash.equals(ohash))
-					{
-						log.warn("old cache hash does not match hash in tree. {} != {}", ohash, thash);
-						return;
-					}
-
-					byte[] nData = get(neew, id);
-					String nhash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(nData).asBytes());
-
-					if (nhash.equals(ohash))
-					{
-						log.info("Not updating script {} because it didn't change hash", scriptFile.getName());
-						return;
-					}
-
-					ScriptSource oldSource = new ScriptSource(loader.load(id, oData));
-					ScriptSource newSource = new ScriptSource(loader.load(id, nData));
-
-					String newModSource = updateScript(oldSource, newSource, oldModSource);
-
-					// Just make sure it atleast assembles still
-					try
-					{
-						Assembler assembler = new Assembler(RuneLiteInstructions.instance);
-						assembler.assemble(new ByteArrayInputStream(newModSource.getBytes()));
-					}
-					catch (Exception e)
-					{
-						log.warn("Updated script does not assemble {}", scriptFile.getName(), e);
-					}
-
-					try (OutputStream os = new FileOutputStream(hashFile))
-					{
-						os.write(nhash.getBytes());
-					}
-					try (OutputStream os = new FileOutputStream(scriptFile))
-					{
-						os.write(newModSource.getBytes());
-					}
-
-					synchronized (gitLock)
-					{
-						Git.runelite.add(scriptFile);
-						Git.runelite.add(hashFile);
-					}
-					log.info("Updated script {}", scriptFile.getName());
+					Assembler assembler = new Assembler(RuneLiteInstructions.instance);
+					assembler.assemble(new ByteArrayInputStream(newModSource.getBytes()));
 				}
 				catch (Exception e)
 				{
-					log.warn("Unable to update script {}, ", scriptFile.getName(), e);
+					mc.log("Updated script does not assemble {}", scriptFile, e);
 				}
-			}));
-		}
-		scripts.forEach(s ->
-		{
-			try
-			{
-				s.get();
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException(e);
-			}
-		});
-		tp.shutdown();
 
-		Git.runelite.commitUpdate("Scripts");
+				mc.writeFile(GitUtil.pathJoin(root, hashFile), nhash.getBytes());
+				mc.writeFile(scriptFilePath, newModSource.getBytes());
+				log.info("Updated script {}", scriptFile);
+			}));
+
+		try (Git git = new Git(rl))
+		{
+			String newBranch = Main.branchName + "-previous";
+			git.branchCreate()
+				.setForce(true)
+				.setName(newBranch)
+				.setStartPoint(Main.branchName)
+				.call();
+			oldDelta.finish(rl, newBranch);
+			GitUtil.pushBranch(rl, newBranch);
+		}
+		mc.finish(rl, Main.branchName);
+
+		try (Git git = new Git(rl))
+		{
+			String newBranch = Main.branchName + "-next";
+			git.branchCreate()
+				.setForce(true)
+				.setName(newBranch)
+				.setStartPoint(Main.branchName)
+				.call();
+			newDelta.finish(rl, newBranch);
+			GitUtil.pushBranch(rl, newBranch);
+		}
 	}
 
 	@VisibleForTesting
