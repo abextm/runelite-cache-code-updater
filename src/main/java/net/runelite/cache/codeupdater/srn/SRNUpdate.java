@@ -230,11 +230,7 @@ public class SRNUpdate
 				i -> i.name
 			));
 
-		String itemNameJSON = new GsonBuilder()
-			.disableHtmlEscaping()
-			.setPrettyPrinting()
-			.create()
-			.toJson(itemNames);
+		String itemNameJSON = Main.GSON.toJson(itemNames);
 
 		MutableCommit nameCommit = new MutableCommit("Item Names");
 		nameCommit.writeFile("cache/item/names.json", itemNameJSON.getBytes());

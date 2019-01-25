@@ -24,6 +24,8 @@
  */
 package net.runelite.cache.codeupdater;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
+import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
@@ -52,6 +55,11 @@ public class Main
 	public static String versionText;
 
 	public static ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 2);
+
+	public static Gson GSON = new GsonBuilder()
+		.disableHtmlEscaping()
+		.setPrettyPrinting()
+		.create();
 
 	public static void main(String[] args) throws Exception
 	{
@@ -88,6 +96,7 @@ public class Main
 
 		execAllAndWait(
 			APIUpdate::update,
+			ItemVariationsUpdate::update,
 			WidgetUpdate::update,
 			ScriptUpdate::update
 		);
@@ -111,12 +120,12 @@ public class Main
 		void run() throws Exception;
 	}
 
-	public static <T extends Exception> void execAllAndWait(RunAndThrow... runnables) throws T
+	public static <T extends Throwable> void execAllAndWait(RunAndThrow... runnables) throws T
 	{
 		execAllAndWait(Stream.of(runnables));
 	}
 
-	public static <T extends Exception> void execAllAndWait(Stream<RunAndThrow> runnables) throws T
+	public static <T extends Throwable> void execAllAndWait(Stream<RunAndThrow> runnables) throws T
 	{
 		List<Future<?>> futs = runnables.map(r -> exec.submit(() -> {
 			r.run();
