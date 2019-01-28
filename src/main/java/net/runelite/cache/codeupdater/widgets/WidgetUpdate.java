@@ -36,10 +36,8 @@ import com.github.javaparser.ast.expr.IntegerLiteralExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.InterfaceManager;
@@ -86,27 +84,7 @@ public class WidgetUpdate
 			Mapping<InterfaceDefinition> mapping = Mapping.of(
 				ImmutableList.copyOf(ifmOld.getIntefaceGroup(group)),
 				ImmutableList.copyOf(ifmNew.getIntefaceGroup(group)),
-				(a, b) ->
-				{
-					double d = 0.d;
-					try
-					{
-						Field[] fs = InterfaceDefinition.class.getFields();
-						for (Field f : fs)
-						{
-							if (!Objects.equals(f.get(a), f.get(b)))
-							{
-								d += 1.d / (double) fs.length;
-							}
-						}
-					}
-					catch (ReflectiveOperationException e)
-					{
-						throw new RuntimeException(e);
-					}
-					return d;
-				}
-			);
+				new WidgetMapper());
 
 			for (Map.Entry<Integer, IntegerLiteralExpr> childEntry : groupEntry.getValue().entrySet())
 			{
