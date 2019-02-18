@@ -22,54 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.codeupdater.git;
+package net.runelite.cache.codeupdater.client;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-import net.runelite.cache.fs.flat.FlatStorage;
-import org.eclipse.jgit.lib.ObjectId;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import net.runelite.cache.codeupdater.git.GitUtil;
 import org.eclipse.jgit.lib.Repository;
-
-public class GitFlatStorage extends FlatStorage
+public class UpdateHandler
 {
-	private final Repository repo;
-	private final Map<String, ObjectId> files;
-	private final MutableCommit commit;
-
-	GitFlatStorage(Repository repo, String commitish) throws IOException
+	public static int extractRevision(Repository repo, String commit) throws IOException
 	{
-		this(repo, commitish, null);
+		String oldCommitMessage = GitUtil.resolve(repo, commit).getShortMessage();
+		Matcher commitMatcher = Pattern.compile("rev([0-9]+)").matcher(oldCommitMessage);
+		commitMatcher.find();
+		return Integer.parseInt(commitMatcher.group(1));
 	}
 
-	GitFlatStorage(Repository repo, String commitish, MutableCommit commit) throws IOException
+	public static String calculateTag(Repository repo, int rev) throws IOException
 	{
-		this.repo = repo;
-		this.files = GitUtil.listDirectory(repo, commitish, "", n -> n.endsWith(EXTENSION));
-		this.commit = commit;
-	}
-
-	@Override
-	protected String[] listFlatcacheFiles() throws IOException
-	{
-		return files.keySet().toArray(new String[0]);
-	}
-
-	@Override
-	protected InputStream openReader(String filename) throws IOException
-	{
-		return repo.open(files.get(filename)).openStream();
-	}
-
-	@Override
-	protected OutputStream openWriter(String filename) throws IOException
-	{
-		if (commit == null)
+		String dateStr = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+		String revSlug = "-rev" + rev;
+		String tag = dateStr + revSlug;
+		for (int c = 1; repo.resolve(tag) != null; c++)
 		{
-			throw new IOException("storage is read only");
+			tag = dateStr + "-c" + c + revSlug;
 		}
-
-		return commit.writeFile(filename);
+		return tag;
 	}
 }

@@ -168,7 +168,7 @@ public class MutableCommit
 			cb.setTreeId(tree);
 			cb.setMessage(subject + "\n\n" + log.toString());
 
-			PersonIdent author = new PersonIdent("RuneLite Cache-Code Autoupdater", "mii7303+rlccau@gmail.com");
+			PersonIdent author = new PersonIdent("RuneLite Cache-Code Autoupdater", GitUtil.getOwner());
 			cb.setAuthor(author);
 			cb.setCommitter(author);
 
@@ -196,5 +196,12 @@ public class MutableCommit
 			ru.setExpectedOldObjectId(commitish);
 			ru.forceUpdate();
 		}
+	}
+
+	public void clear()
+	{
+		log.setLength(0);
+		log.trimToSize();
+		files.clear();
 	}
 }

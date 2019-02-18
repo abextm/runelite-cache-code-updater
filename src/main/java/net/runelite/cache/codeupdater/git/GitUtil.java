@@ -39,6 +39,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
 @Slf4j
@@ -50,7 +51,12 @@ public final class GitUtil
 
 	public static Store openStore(Repository repo, String commitish) throws IOException
 	{
-		GitFlatStorage fs = new GitFlatStorage(repo, commitish);
+		return openStore(repo, commitish, null);
+	}
+
+	public static Store openStore(Repository repo, String commitish, MutableCommit commit) throws IOException
+	{
+		GitFlatStorage fs = new GitFlatStorage(repo, commitish, commit);
 		Store store = new Store(fs);
 		store.load();
 
@@ -75,6 +81,7 @@ public final class GitUtil
 					.setRefSpecs(new RefSpec(branchName + ":" + branchName))
 					.setProgressMonitor(new TextProgressMonitor())
 					.setForce(true)
+					.setThin(true)
 					.call();
 			}
 		}
@@ -149,5 +156,29 @@ public final class GitUtil
 			return a + b;
 		}
 		return a + "/" + b;
+	}
+
+	public static String getOwner()
+	{
+		return envOr("COMMIT_OWNER", "mii7303+rlccau@gmail.com");
+	}
+
+	public static void diff(Repository repo, String commita, String commitb) throws GitAPIException, IOException
+	{
+		try (Git git = new Git(repo);
+			ObjectReader or = repo.newObjectReader())
+		{
+			CanonicalTreeParser tpa = new CanonicalTreeParser();
+			tpa.reset(or, resolve(repo, commita).getTree());
+
+			CanonicalTreeParser tpb = new CanonicalTreeParser();
+			tpb.reset(or, resolve(repo, commitb).getTree());
+
+			git.diff()
+				.setOutputStream(System.out)
+				.setOldTree(tpa)
+				.setNewTree(tpb)
+				.call();
+		}
 	}
 }
