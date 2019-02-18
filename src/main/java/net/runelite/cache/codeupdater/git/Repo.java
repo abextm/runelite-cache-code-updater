@@ -32,10 +32,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
+import org.eclipse.jgit.storage.file.FileBasedConfig;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.util.FS;
+import org.eclipse.jgit.util.SystemReader;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -50,6 +54,66 @@ public enum Repo
 	private final String masterBranch;
 
 	private Repository repo;
+
+	static
+	{
+		SystemReader.setInstance(new SystemReader()
+		{
+			@Override
+			public String getHostname()
+			{
+				return "rlccau";
+			}
+
+			@Override
+			public String getenv(String variable)
+			{
+				return System.getenv(variable);
+			}
+
+			@Override
+			public String getProperty(String key)
+			{
+				return System.getProperty(key);
+			}
+
+			@Override
+			public FileBasedConfig openUserConfig(Config parent, FS fs)
+			{
+				return openSystemConfig(null, fs);
+			}
+
+			@Override
+			public FileBasedConfig openSystemConfig(Config parent, FS fs)
+			{
+				return new FileBasedConfig(null, fs)
+				{
+					@Override
+					public void load()
+					{
+					}
+
+					@Override
+					public boolean isOutdated()
+					{
+						return false;
+					}
+				};
+			}
+
+			@Override
+			public long getCurrentTime()
+			{
+				return System.currentTimeMillis();
+			}
+
+			@Override
+			public int getTimezone(long when)
+			{
+				return getTimeZone().getOffset(when) / (60 * 1000);
+			}
+		});
+	}
 
 	public Repository get() throws IOException
 	{
