@@ -1,7 +1,6 @@
 /osrs-cache
-/osrs-flatcache
 /runelite
-/static.runelite.net
+/srn
 
 target
 nbactions.xml

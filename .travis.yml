@@ -6,7 +6,7 @@ cache:
     - $HOME/.m2
     - osrs-cache
     - runelite
-    - static.runelite.net
+    - srn
 jdk:
 - oraclejdk8
 install: true
