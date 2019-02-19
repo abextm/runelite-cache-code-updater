@@ -83,7 +83,7 @@ public class SRNUpdate
 		Map<Integer, ItemDefinition> itemIDs = new HashMap<>(items.size());
 		for (ItemDefinition d : items)
 		{
-			if (d.notedTemplate != -1 || d.placeholderTemplateId != -1)
+			if (d.placeholderTemplateId != -1)
 			{
 				continue;
 			}
