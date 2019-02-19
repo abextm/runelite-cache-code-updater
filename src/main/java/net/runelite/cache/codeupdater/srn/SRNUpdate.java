@@ -26,8 +26,8 @@ package net.runelite.cache.codeupdater.srn;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.GsonBuilder;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collection;
@@ -44,6 +44,7 @@ import net.runelite.cache.ItemManager;
 import net.runelite.cache.SpriteManager;
 import net.runelite.cache.TextureManager;
 import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.definitions.ItemDefinition;
@@ -64,7 +65,8 @@ public class SRNUpdate
 	{
 		Index models = store.getIndex(IndexType.MODELS);
 		ModelLoader ml = new ModelLoader();
-		return modelId -> {
+		return modelId ->
+		{
 			Archive archive = models.getArchive(modelId);
 			if (archive == null)
 			{
@@ -135,13 +137,15 @@ public class SRNUpdate
 
 		MutableCommit imCommit = new MutableCommit("Item Icons");
 
-		IntPredicate isSpriteChanged = sid -> {
+		IntPredicate isSpriteChanged = sid ->
+		{
 			SpriteDefinition nsd = nsm.findSprite(sid, 0);
 			SpriteDefinition psd = psm.findSprite(sid, 0);
 			return !Objects.equals(nsd, psd);
 		};
 
-		IntPredicate isTextureChanged = tid -> {
+		IntPredicate isTextureChanged = tid ->
+		{
 			TextureDefinition ntd = ntm.findTexture(tid);
 			TextureDefinition ptd = ptm.findTexture(tid);
 			if (!Objects.equals(ntd, ptd))
@@ -156,7 +160,8 @@ public class SRNUpdate
 
 		};
 
-		Predicate<short[]> anyTextureChanged = tids -> {
+		Predicate<short[]> anyTextureChanged = tids ->
+		{
 			if (tids == null)
 			{
 				return false;
@@ -172,7 +177,8 @@ public class SRNUpdate
 			return false;
 		};
 
-		IntPredicate isModelChanged = mid -> {
+		IntPredicate isModelChanged = mid ->
+		{
 			try
 			{
 				ModelDefinition nmd = nmm.provide(mid);
@@ -189,8 +195,16 @@ public class SRNUpdate
 			}
 		};
 
+		boolean slowMode = !Strings.isNullOrEmpty(GitUtil.envOr("SLOW_SRN", ""));
+
 		Main.execAllAndWait(nis.entrySet().stream()
-			.filter(item -> {
+			.filter(item ->
+			{
+				if (slowMode)
+				{
+					return true;
+				}
+
 				ItemDefinition nid = item.getValue();
 				ItemDefinition pid = pis.get(item.getKey());
 				if (!nid.equals(pid))
@@ -203,14 +217,33 @@ public class SRNUpdate
 				}
 				return isModelChanged.test(nid.inventoryModel);
 			})
-			.map(item -> () -> {
+			.map(item -> () ->
+			{
 				try
 				{
-					imCommit.log("{},", item.getKey());
+					if (!slowMode)
+					{
+						imCommit.log("{},", item.getKey());
+					}
 					BufferedImage img = ItemSpriteFactory.createSprite(
 						nim, nmm, nsm, ntm,
 						item.getValue().id, 0, 1, 0x302020, false);
-					try (OutputStream os = imCommit.writeFile("cache/item/icon/" + item.getKey() + ".png"))
+					String fipath = "cache/item/icon/" + item.getKey() + ".png";
+					BufferedImage oldImg = null;
+					byte[] data = GitUtil.readFile(Repo.SRN.get(), Main.branchName, fipath);
+					if (data != null)
+					{
+						synchronized (ImageIO.class)
+						{
+							// ImageIO.read is not thread safe
+							oldImg = ImageIO.read(new ByteArrayInputStream(data));
+						}
+					}
+					if (imagesEqual(oldImg, img))
+					{
+						return;
+					}
+					try (OutputStream os = imCommit.writeFile(fipath))
 					{
 						ImageIO.write(img, "png", os);
 					}
@@ -235,5 +268,32 @@ public class SRNUpdate
 		MutableCommit nameCommit = new MutableCommit("Item Names");
 		nameCommit.writeFile("cache/item/names.json", itemNameJSON.getBytes());
 		nameCommit.finish(Repo.SRN.get(), Main.branchName);
+	}
+
+	private static boolean imagesEqual(BufferedImage a, BufferedImage b)
+	{
+		if (a == b)
+		{
+			return true;
+		}
+		if (a == null || b == null)
+		{
+			return false;
+		}
+		if (a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight())
+		{
+			return false;
+		}
+		for (int y = 0; y < a.getHeight(); y++)
+		{
+			for (int x = 0; x < a.getWidth(); x++)
+			{
+				if (a.getRGB(x, y) != b.getRGB(x, y))
+				{
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 }

@@ -135,6 +135,11 @@ public final class GitUtil
 		RevCommit commit = resolve(repo, commitish);
 		try (TreeWalk tw = TreeWalk.forPath(repo, path, commit.getTree()))
 		{
+			if (tw == null)
+			{
+				return null;
+			}
+
 			return tw.getObjectReader().open(tw.getObjectId(0)).getBytes();
 		}
 	}
