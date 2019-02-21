@@ -115,10 +115,22 @@ public class SRNUpdate
 		return itemIDs;
 	}
 
+	private static void updateNotes(ItemManager im)
+	{
+		for(ItemDefinition item : im.getItems())
+		{
+			if (item.notedTemplate != -1)
+			{
+				item.updateNote(im.provide(item.notedTemplate), im.provide(item.notedID));
+			}
+		}
+	}
+
 	public static void update() throws IOException
 	{
 		ItemManager nim = new ItemManager(Main.next);
 		nim.load();
+		updateNotes(nim);
 		Map<Integer, ItemDefinition> nis = filterAndMapForCount(nim);
 		ModelProvider nmm = modelProvider(Main.next);
 		SpriteManager nsm = new SpriteManager(Main.next);
@@ -128,6 +140,7 @@ public class SRNUpdate
 
 		ItemManager pim = new ItemManager(Main.previous);
 		pim.load();
+		updateNotes(pim);
 		Map<Integer, ItemDefinition> pis = filterAndMapForCount(pim);
 		ModelProvider pmm = modelProvider(Main.previous);
 		SpriteManager psm = new SpriteManager(Main.previous);
@@ -157,7 +170,6 @@ public class SRNUpdate
 				return false;
 			}
 			return IntStream.of(ntd.getFileIds()).anyMatch(isSpriteChanged);
-
 		};
 
 		Predicate<short[]> anyTextureChanged = tids ->
@@ -195,6 +207,30 @@ public class SRNUpdate
 			}
 		};
 
+		IntPredicate isItemChanged;
+		isItemChanged = new IntPredicate()
+		{
+			@Override
+			public boolean test(int iid)
+			{
+				ItemDefinition nid = nis.get(iid);
+				ItemDefinition pid = pis.get(iid);
+				if (!Objects.equals(nid, pid))
+				{
+					return true;
+				}
+				if (nid.notedTemplate != -1 && test(nid.notedID))
+				{
+					return true;
+				}
+				if (anyTextureChanged.test(nid.textureReplace))
+				{
+					return true;
+				}
+				return isModelChanged.test(nid.inventoryModel);
+			}
+		};
+
 		boolean slowMode = !Strings.isNullOrEmpty(GitUtil.envOr("SLOW_SRN", ""));
 
 		Main.execAllAndWait(nis.entrySet().stream()
@@ -204,18 +240,7 @@ public class SRNUpdate
 				{
 					return true;
 				}
-
-				ItemDefinition nid = item.getValue();
-				ItemDefinition pid = pis.get(item.getKey());
-				if (!nid.equals(pid))
-				{
-					return true;
-				}
-				if (anyTextureChanged.test(nid.textureReplace))
-				{
-					return true;
-				}
-				return isModelChanged.test(nid.inventoryModel);
+				return isItemChanged.test(item.getKey());
 			})
 			.map(item -> () ->
 			{
