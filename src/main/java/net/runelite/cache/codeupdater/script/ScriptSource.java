@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -41,6 +42,9 @@ import net.runelite.cache.script.disassembler.Disassembler;
 
 public class ScriptSource
 {
+	@Getter
+	private String prelude = "";
+
 	@Getter
 	private final Map<String, String> header = new LinkedHashMap<>();
 
@@ -94,6 +98,54 @@ public class ScriptSource
 			}
 			return instr;
 		}
+
+		public String format(boolean noNames, Function<String, String> labelmapper)
+		{
+			String s = getPrefix();
+			if (s == null)
+			{
+				s = "";
+			}
+
+			String is = null;
+			Instruction in = getInstruction();
+			if (in != null)
+			{
+				if (noNames)
+				{
+					is = in.getOpcode() + "";
+				}
+				else
+				{
+					is = in.getName();
+				}
+			}
+			if (is == null)
+			{
+				is = getOpcode();
+			}
+			if (is != null)
+			{
+				if (is.endsWith(":"))
+				{
+					s += labelmapper.apply(is);
+				}
+				else
+				{
+					s += String.format("%-22s", is);
+				}
+			}
+
+			if (getOperand() != null && !getOperand().isEmpty())
+			{
+				s += " " + labelmapper.apply(getOperand());
+			}
+			if (getComment() != null && !getComment().isEmpty())
+			{
+				s += getComment();
+			}
+			return s;
+		}
 	}
 
 	private static Pattern LINE_MATCHER = Pattern.compile("(?m)^(?<prefix> *)((?<opcode>[^ ;\"\n]+) *)?(?<operand>[^;\n]*?)(?<comment> *;.*)?$");
@@ -119,6 +171,7 @@ public class ScriptSource
 	private void init(String source)
 	{
 		Matcher m = LINE_MATCHER.matcher(source);
+		StringBuilder prelude = new StringBuilder();
 		for (; m.find(); )
 		{
 			Line l = new Line();
@@ -130,10 +183,15 @@ public class ScriptSource
 			{
 				header.put(l.getOpcode(), l.getOperand());
 			}
-			else
+			else if (!header.isEmpty())
 			{
 				lines.add(l);
 			}
+			else
+			{
+				prelude.append(m.group(0)).append("\n");
+			}
 		}
+		this.prelude = prelude.toString();
 	}
 }

@@ -46,7 +46,6 @@ import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.Index;
 import net.runelite.cache.fs.Storage;
 import net.runelite.cache.fs.Store;
-import net.runelite.cache.script.Instruction;
 import net.runelite.cache.script.assembler.Assembler;
 import net.runelite.cache.script.disassembler.Disassembler;
 import org.eclipse.jgit.api.Git;
@@ -165,6 +164,7 @@ public class ScriptUpdate
 		Mapping<ScriptSource.Line> osDns = Mapping.of(oldS.getLines(), newS.getLines(), new ScriptSourceMapper());
 
 		StringBuilder out = new StringBuilder();
+		out.append(oldM.getPrelude());
 
 		for (Map.Entry<String, String> hf : oldM.getHeader().entrySet())
 		{
@@ -187,7 +187,7 @@ public class ScriptUpdate
 
 		for (ScriptSource.Line l : insertions.get(null))
 		{
-			out.append(formatInstruction(l, Function.identity())).append("\n");//TODO:
+			out.append(l.format(false, Function.identity())).append("\n");//TODO:
 		}
 		insertions.removeAll(null);
 
@@ -195,7 +195,7 @@ public class ScriptUpdate
 		{
 			if (n != null)
 			{
-				out.append(formatInstruction(n, Function.identity()));
+				out.append(n.format(false, Function.identity()));
 				ScriptSource.Line oml = osDom.getSame().get(o);
 				if (oml != null && oml.getComment() != null)
 				{
@@ -206,52 +206,11 @@ public class ScriptUpdate
 
 			for (ScriptSource.Line l : insertions.get(o))
 			{
-				out.append(formatInstruction(l, Function.identity())).append("\n");//TODO:
+				out.append(l.format(false, Function.identity())).append("\n");//TODO:
 			}
 		});
 
 		return out.toString();
-	}
-
-	private static String formatInstruction(ScriptSource.Line l, Function<String, String> labelmapper)
-	{
-		String s = l.getPrefix();
-		if (s == null)
-		{
-			s = "";
-		}
-
-		String is = null;
-		Instruction in = l.getInstruction();
-		if (in != null)
-		{
-			is = in.getName();
-		}
-		if (is == null)
-		{
-			is = l.getOpcode();
-		}
-		if (is != null)
-		{
-			if (is.endsWith(":"))
-			{
-				s += labelmapper.apply(is);
-			}
-			else
-			{
-				s += String.format("%-22s", is);
-			}
-		}
-
-		if (l.getOperand() != null && !l.getOperand().isEmpty())
-		{
-			s += " " + labelmapper.apply(l.getOperand());
-		}
-		if (l.getComment() != null && !l.getComment().isEmpty())
-		{
-			s += l.getComment();
-		}
-		return s;
 	}
 
 	private static byte[] get(Store store, int id) throws IOException
