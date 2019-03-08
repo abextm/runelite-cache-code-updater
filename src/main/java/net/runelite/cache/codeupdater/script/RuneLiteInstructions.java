@@ -39,6 +39,6 @@ public class RuneLiteInstructions extends Instructions
 	public void init()
 	{
 		super.init();
-		add(RUNELITE_EXECUTE, "runelite_callback", 0, 0, 1, 0);
+		add(RUNELITE_EXECUTE, "runelite_callback");
 	}
 }
