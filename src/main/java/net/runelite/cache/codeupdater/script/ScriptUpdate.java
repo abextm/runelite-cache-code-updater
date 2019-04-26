@@ -31,7 +31,10 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -166,7 +169,24 @@ public class ScriptUpdate
 		StringBuilder out = new StringBuilder();
 		out.append(oldM.getPrelude());
 
+		HashMap<String, String> headers = new LinkedHashMap<>(newS.getHeader());
+		HashMap<String, String> modHeaders = new LinkedHashMap<>();
 		for (Map.Entry<String, String> hf : oldM.getHeader().entrySet())
+		{
+			String osv = oldS.getHeader().get(hf.getKey());
+			String omv = hf.getValue();
+			if (omv != null && osv == null)
+			{
+				modHeaders.put(hf.getKey(), hf.getValue());
+			}
+			if (!Objects.equals(osv, omv))
+			{
+				headers.put(hf.getKey(), hf.getValue());
+			}
+		}
+		modHeaders.putAll(headers);
+
+		for (Map.Entry<String, String> hf : modHeaders.entrySet())
 		{
 			out.append(String.format("%-19s %s\n", hf.getKey(), hf.getValue()));
 		}
