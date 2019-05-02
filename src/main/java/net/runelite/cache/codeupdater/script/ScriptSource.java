@@ -137,7 +137,7 @@ public class ScriptSource
 
 			if (getOperand() != null && !getOperand().isEmpty())
 			{
-				s += " " + config.mapLabel(getOperand());
+				s += " " + config.mapOperand(getOpcode(), getOperand());
 			}
 			if (getComment() != null && !getComment().isEmpty())
 			{

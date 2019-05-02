@@ -35,4 +35,9 @@ public class ScriptLineFormatConfig
 	{
 		return label;
 	}
+
+	String mapOperand(String opcode, String operand)
+	{
+		return operand;
+	}
 }

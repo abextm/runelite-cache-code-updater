@@ -25,6 +25,7 @@
 package net.runelite.cache.codeupdater.script;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.hash.Hashing;
@@ -58,6 +59,13 @@ import org.eclipse.jgit.lib.Repository;
 @Slf4j
 public class ScriptUpdate
 {
+	private static Map<String, String> opcodeGroups = ImmutableMap.of(
+		"iload", "ilvt",
+		"istore", "ilvt",
+		"sstore", "slvt",
+		"sload", "slvt"
+	);
+
 	public static void update() throws IOException, GitAPIException
 	{
 		ScriptLoader loader = new ScriptLoader();
@@ -205,10 +213,37 @@ public class ScriptUpdate
 			}
 		});
 
+		Map<String, String> operandMap = new HashMap<>();
+
+		osDns.getSame().forEach((o, n) ->
+		{
+			if (!Objects.equals(o.getOpcode(), n.getOpcode()))
+			{
+				return;
+			}
+
+			String group = opcodeGroups.get(o.getOpcode());
+			if (group != null)
+			{
+				operandMap.put(group + "\0" + o.getOperand(), n.getOperand());
+			}
+		});
+
 		ScriptLineFormatConfig identityConfig = new ScriptLineFormatConfig();
 		ScriptLineFormatConfig config = new ScriptLineFormatConfig()
 		{
 			//TODO: label mapper
+
+			@Override
+			public String mapOperand(String opcode, String operand)
+			{
+				String group = opcodeGroups.get(opcode);
+				if (group != null)
+				{
+					return operandMap.getOrDefault(group + "\0" + operand, operand);
+				}
+				return operand;
+			}
 		};
 
 		for (ScriptSource.Line l : insertions.get(null))
