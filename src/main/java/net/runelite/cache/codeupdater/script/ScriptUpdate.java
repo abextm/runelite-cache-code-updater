@@ -36,7 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.IndexType;
 import net.runelite.cache.codeupdater.Main;
@@ -73,7 +72,8 @@ public class ScriptUpdate
 		Main.execAllAndWait(GitUtil.listDirectory(rl, Main.branchName, root, n -> n.endsWith(".hash"))
 			.entrySet()
 			.stream()
-			.map(ent -> () -> {
+			.map(ent -> () ->
+			{
 				String hashFile = ent.getKey();
 				String scriptFile = hashFile.replace(".hash", ".rs2asm");
 				String scriptFilePath = GitUtil.pathJoin(root, scriptFile);
@@ -205,9 +205,15 @@ public class ScriptUpdate
 			}
 		});
 
+		ScriptLineFormatConfig identityConfig = new ScriptLineFormatConfig();
+		ScriptLineFormatConfig config = new ScriptLineFormatConfig()
+		{
+			//TODO: label mapper
+		};
+
 		for (ScriptSource.Line l : insertions.get(null))
 		{
-			out.append(l.format(false, Function.identity())).append("\n");//TODO:
+			out.append(l.format(config)).append("\n");
 		}
 		insertions.removeAll(null);
 
@@ -215,7 +221,7 @@ public class ScriptUpdate
 		{
 			if (n != null)
 			{
-				out.append(n.format(false, Function.identity()));
+				out.append(n.format(identityConfig));
 				ScriptSource.Line oml = osDom.getSame().get(o);
 				if (oml != null && oml.getComment() != null)
 				{
@@ -226,7 +232,7 @@ public class ScriptUpdate
 
 			for (ScriptSource.Line l : insertions.get(o))
 			{
-				out.append(l.format(false, Function.identity())).append("\n");//TODO:
+				out.append(l.format(config)).append("\n");
 			}
 		});
 

@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -99,7 +98,7 @@ public class ScriptSource
 			return instr;
 		}
 
-		public String format(boolean noNames, Function<String, String> labelmapper)
+		public String format(ScriptLineFormatConfig config)
 		{
 			String s = getPrefix();
 			if (s == null)
@@ -111,7 +110,7 @@ public class ScriptSource
 			Instruction in = getInstruction();
 			if (in != null)
 			{
-				if (noNames)
+				if (config.isNoNames())
 				{
 					is = in.getOpcode() + "";
 				}
@@ -128,7 +127,7 @@ public class ScriptSource
 			{
 				if (is.endsWith(":"))
 				{
-					s += labelmapper.apply(is);
+					s += config.mapLabel(is);
 				}
 				else
 				{
@@ -138,7 +137,7 @@ public class ScriptSource
 
 			if (getOperand() != null && !getOperand().isEmpty())
 			{
-				s += " " + labelmapper.apply(getOperand());
+				s += " " + config.mapLabel(getOperand());
 			}
 			if (getComment() != null && !getComment().isEmpty())
 			{

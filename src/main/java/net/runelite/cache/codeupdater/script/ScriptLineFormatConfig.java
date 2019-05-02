@@ -24,53 +24,15 @@
  */
 package net.runelite.cache.codeupdater.script;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Map;
-
-public class ScriptOpcodeFixer
+public class ScriptLineFormatConfig
 {
-	public static void main(String[] args) throws IOException
+	boolean isNoNames()
 	{
-		boolean noNames = "-nonames".equalsIgnoreCase(args[0]);
-		ScriptLineFormatConfig config = new ScriptLineFormatConfig()
-		{
-			@Override
-			public boolean isNoNames()
-			{
-				return noNames;
-			}
-		};
+		return false;
+	}
 
-		File root = new File(args[1]);
-		Files.walkFileTree(root.toPath(), new SimpleFileVisitor<Path>()
-		{
-			@Override
-			public FileVisitResult visitFile(Path path, BasicFileAttributes attr) throws IOException
-			{
-				if (path.toString().endsWith(".rs2asm"))
-				{
-					System.out.println("Editing \"" + path + "\"");
-					ScriptSource ss = new ScriptSource(new String(Files.readAllBytes(path)));
-					StringBuilder out = new StringBuilder();
-					out.append(ss.getPrelude());
-					for (Map.Entry<String, String> hf : ss.getHeader().entrySet())
-					{
-						out.append(String.format("%-19s %s\n", hf.getKey(), hf.getValue()));
-					}
-					for (ScriptSource.Line line : ss.getLines())
-					{
-						out.append(line.format(config)).append("\n");
-					}
-					Files.write(path, out.toString().getBytes());
-				}
-				return FileVisitResult.CONTINUE;
-			}
-		});
+	String mapLabel(String label)
+	{
+		return label;
 	}
 }
