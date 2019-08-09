@@ -25,6 +25,9 @@
 package net.runelite.cache.codeupdater;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import java.io.IOException;
@@ -35,12 +38,6 @@ import org.eclipse.jgit.lib.Repository;
 
 public class JavaFile
 {
-	static
-	{
-		JavaParser.getStaticConfiguration().setLexicalPreservationEnabled(true);
-		JavaParser.getStaticConfiguration().setAttributeComments(false);
-	}
-
 	@Getter
 	private final CompilationUnit compilationUnit;
 
@@ -49,9 +46,30 @@ public class JavaFile
 
 	public JavaFile(Repository repo, String commitish, String file) throws IOException
 	{
+		this(defaultConfiguration(), repo, commitish, file);
+	}
+
+	public static ParserConfiguration defaultConfiguration()
+	{
+		ParserConfiguration config = new ParserConfiguration();
+		config.setLexicalPreservationEnabled(true);
+		config.setAttributeComments(false);
+		return config;
+	}
+
+	public JavaFile(ParserConfiguration config, Repository repo, String commitish, String file) throws IOException
+	{
 		this.path = file;
 		byte[] data = GitUtil.readFile(repo, commitish, path);
-		this.compilationUnit = JavaParser.parse(new String(data));
+
+		ParseResult<CompilationUnit> result = new JavaParser(config)
+			.parse(new String(data));
+		if (!result.isSuccessful())
+		{
+			throw new ParseProblemException(result.getProblems());
+		}
+
+		this.compilationUnit = result.getResult().get();
 		LexicalPreservingPrinter.setup(this.compilationUnit);
 	}
 
