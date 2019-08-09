@@ -39,6 +39,7 @@ import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
+import net.runelite.cache.codeupdater.script.ScriptIDUpdate;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
 import net.runelite.cache.codeupdater.srn.SRNUpdate;
 import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
@@ -98,7 +99,8 @@ public class Main
 			APIUpdate::update,
 			ItemVariationsUpdate::update,
 			WidgetUpdate::update,
-			ScriptUpdate::update
+			ScriptUpdate::update,
+			ScriptIDUpdate::update
 		);
 
 		GitUtil.pushBranch(rl, branchName);

@@ -274,7 +274,7 @@ public class ScriptUpdate
 		return out.toString();
 	}
 
-	private static byte[] get(Store store, int id) throws IOException
+	static byte[] get(Store store, int id) throws IOException
 	{
 		Storage storage = store.getStorage();
 		Index index = store.getIndex(IndexType.CLIENTSCRIPT);
