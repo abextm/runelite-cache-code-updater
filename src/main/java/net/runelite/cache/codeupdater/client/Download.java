@@ -25,6 +25,7 @@
 package net.runelite.cache.codeupdater.client;
 
 import com.google.common.base.Strings;
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.fs.Store;
+import net.runelite.cache.fs.jagex.DiskStorage;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
@@ -53,9 +55,23 @@ public class Download
 			case "RUN":
 				doSingle(false);
 				break;
+			case "JAGEX":
+				doJagex(new File(args[0]), Integer.parseInt(args[1]));
+				break;
 			default:
 				throw new IllegalArgumentException(mode + " is not a valid DOWNLOAD_MODE");
 		}
+	}
+
+	private static void doJagex(File path, int rev) throws Exception
+	{
+		path.mkdirs();
+		Store store = new Store(new DiskStorage(path));
+		HostSupplier hs = new HostSupplier();
+		JS5Client jsc = new JS5Client(store, hs.getHost(false), rev, false);
+		jsc.enqueueRoot();
+		jsc.process();
+		store.save();
 	}
 
 	private static void doSingle(boolean test) throws Exception
