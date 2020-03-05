@@ -54,6 +54,7 @@ public class ItemVariationsUpdate
 		{" full", ""},
 		{"half a ", ""},
 		{"part ", ""},
+		{"open(ed)? ", ""},
 		{"  ", " "},
 		{"\\w+ slayer helmet", "slayer helmet"},
 		{"\\w+ abyssal whip", "abyssal whip"},
