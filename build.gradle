@@ -1,0 +1,45 @@
+plugins {
+	id "java"
+	id "com.github.johnrengelman.shadow" version "5.2.0"
+	id "io.freefair.lombok" version "5.0.0-rc6"
+}
+
+repositories {
+	maven {
+		url "http://repo.runelite.net"
+	}
+	mavenCentral()
+}
+
+lombok {
+	generateLombokConfig.enabled = false
+}
+
+version = file("version").text.trim()
+
+def runeliteVersion = "1.5.30"
+dependencies {
+	implementation "com.google.guava:guava:23.2-jre"
+	implementation "com.google.code.gson:gson:2.8.5"
+	implementation "com.github.javaparser:javaparser-core:3.14.9"
+	implementation "org.slf4j:slf4j-simple:1.7.12"
+
+	implementation "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
+
+	implementation "net.runelite:cache:${runeliteVersion}"
+	implementation "net.runelite:runelite-api:${runeliteVersion}"
+
+	testImplementation "junit:junit:4.12"
+}
+
+description = "RuneLite Cache Code Updater"
+sourceCompatibility = "1.8"
+
+tasks.withType(JavaCompile) {
+	options.encoding = "UTF-8"
+}
+
+shadowJar {
+	destinationDirectory.set(file("${buildDir}/release/"))
+	archiveFileName = "rlccau-${project.version}.jar"
+}

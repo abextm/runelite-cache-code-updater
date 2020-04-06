@@ -12,3 +12,6 @@ project.properties
 .project
 .settings/
 .classpath
+build
+.gradle
+.vscode
