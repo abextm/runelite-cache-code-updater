@@ -1,0 +1,23 @@
+on:
+  repository_dispatch:
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - env:
+        KEYS: ${{ secrets.KEYS }}
+      run: |
+        set -e -x
+        curl -sqL https://api.github.com/repos/abextm/runelite-cache-code-updater/releases/latest \
+          | jq -r '.assets[] | select(.name | contains(".jar")) | .browser_download_url' \
+          | wget -qi- -O rlccau.jar
+        echo "$KEYS" | base64 -d | tar -xz -C ~/
+        eval $(ssh-agent)
+        export REMOTE_RUNELITE_ORIGIN=git@runelite:abextm/runelite.git
+        export REMOTE_SRN_ORIGIN=git@static.runelite.net:abextm/static.runelite.net.git
+        export GIT_SSH=ssh
+        java -cp rlccau.jar net.runelite.cache.codeupdater.Main

@@ -15,3 +15,6 @@ project.properties
 build
 .gradle
 .vscode
+
+*.key
+/keys.out
