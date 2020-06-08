@@ -27,7 +27,9 @@ package net.runelite.cache.codeupdater.script;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.IntegerLiteralExpr;
+import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
@@ -82,8 +84,20 @@ public class ScriptIDUpdate
 				byte[] newScript = ScriptUpdate.get(Main.next, id);
 				ScriptDefinition script = loader.load(id, newScript);
 
-				NormalAnnotationExpr ann = (NormalAnnotationExpr) fdecl.getAnnotationByName("ScriptArguments")
-					.orElseGet(() -> fdecl.addAndGetAnnotation("ScriptArguments"));
+				AnnotationExpr allAnn = fdecl.getAnnotationByName("ScriptArguments").orElse(null);
+				NormalAnnotationExpr ann = null;
+				if (allAnn instanceof NormalAnnotationExpr)
+				{
+					ann = (NormalAnnotationExpr) allAnn;
+				}
+				if (allAnn instanceof MarkerAnnotationExpr)
+				{
+					fdecl.remove(allAnn);
+				}
+				if (ann == null)
+				{
+					ann = fdecl.addAndGetAnnotation("ScriptArguments");
+				}
 				ann.getPairs().clear();
 
 				if (script.getIntStackCount() != 0)
