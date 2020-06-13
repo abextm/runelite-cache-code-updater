@@ -69,6 +69,7 @@ public class APIUpdate
 			nm.java(tmp);
 			MutableCommit mc = new MutableCommit("NPC IDs");
 			mc.writeFileInDir(repoPath, tmp, "NpcID.java");
+			mc.writeFileInDir(repoPath, tmp, "NullNpcID.java");
 			mc.finish(repo, Main.branchName);
 		}
 	}
