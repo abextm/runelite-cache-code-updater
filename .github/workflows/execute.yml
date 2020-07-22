@@ -27,6 +27,13 @@ jobs:
     - uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    - uses: actions/cache@v2
+      with:
+        path: |
+          osrs_cache
+          runelite
+          srn
+        key: repos
     - name: "Run"
       env:
         KEYS: ${{ secrets.KEYS }}
