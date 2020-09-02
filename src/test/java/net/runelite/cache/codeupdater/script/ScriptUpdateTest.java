@@ -57,6 +57,18 @@ public class ScriptUpdateTest
 		testScript("commandscript.rs2asm");
 	}
 
+	@Test
+	public void privateMessage()
+	{
+		testScript("PrivateMessage.rs2asm");
+	}
+
+	@Test
+	public void labelSwitch()
+	{
+		testScript("switch.txt");
+	}
+
 	private void testScript(String name)
 	{
 		Map<Character, StringBuilder> fis = new HashMap<>();

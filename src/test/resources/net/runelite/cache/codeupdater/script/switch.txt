@@ -1,0 +1,29 @@
+smnf .id                 0
+smnf .int_stack_count    0
+smnf .string_stack_count 0
+smnf .int_var_count      0
+smnf .string_var_count   0
+smnf    iconst                 0
+smnf    switch                
+smnf       1: LABEL42
+sm         2: LABEL53
+  nf       2: LABEL50
+sm      jump                   LABEL64
+  nf    jump                   LABEL60
+smnf LABEL42:
+ m f    jump                   LABEL42
+sm   LABEL53:
+ m      jump                   LABEL53
+  nf LABEL50:
+   f    jump                   LABEL50
+sm   LABEL64:
+ m      jump                   LABEL64
+  nf LABEL60:
+   f    jump                   LABEL60
+ m f    iconst                 0
+ m f    switch                
+ m f       1: LABEL42
+ m         2: LABEL53
+   f       2: LABEL50
+ m         3: LABEL64
+   f       3: LABEL60

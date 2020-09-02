@@ -1,0 +1,391 @@
+smnf .id                 681
+smnf .int_stack_count    0
+smnf .string_stack_count 0
+smnf .int_var_count      2
+smnf .string_var_count   1
+smnf    get_varc_int           5
+smnf    iconst                 14
+sm      if_icmpeq              LABEL4
+  nf    if_icmpeq              LABEL7
+  nf    get_varc_int           5
+  nf    iconst                 17
+  nf    if_icmpeq              LABEL7
+sm      jump                   LABEL7
+  nf    jump                   LABEL10
+sm   LABEL4:
+  nf LABEL7:
+smnf    iconst                 1
+smnf    set_varc_int           66
+smnf    return                
+sm   LABEL7:
+  nf LABEL10:
+smnf    iconst                 -1
+smnf    istore                 0
+smnf    sconst                 ""
+smnf    sstore                 0
+smnf    get_varc_string        359
+smnf    string_length         
+smnf    istore                 1
+smnf    iload                  1
+smnf    iconst                 0
+sm      if_icmpgt              LABEL18
+  nf    if_icmpgt              LABEL21
+sm      jump                   LABEL184
+  nf    jump                   LABEL187
+sm   LABEL18:
+  nf LABEL21:
+smnf    get_varc_int           5
+smnf    switch                
+  nf       1: LABEL21
+  nf       2: LABEL44
+  nf       3: LABEL44
+  nf       4: LABEL23
+  nf       5: LABEL23
+  nf       6: LABEL44
+  nf       7: LABEL107
+  nf       8: LABEL111
+  nf       9: LABEL117
+  nf       10: LABEL120
+  nf       11: LABEL176
+  nf       12: LABEL136
+  nf       13: LABEL154
+  nf       15: LABEL117
+  nf       16: LABEL181
+sm         1: LABEL21
+sm         2: LABEL44
+sm         3: LABEL44
+sm         4: LABEL23
+sm         5: LABEL23
+sm         6: LABEL44
+sm         7: LABEL107
+sm         8: LABEL111
+sm         9: LABEL117
+sm         10: LABEL120
+sm         11: LABEL176
+sm         12: LABEL136
+sm         13: LABEL154
+sm         15: LABEL117
+sm         16: LABEL181
+smnf    jump                   LABEL183
+sm   LABEL21:
+  nf LABEL24:
+smnf    return                
+smnf    jump                   LABEL183
+sm   LABEL23:
+  nf LABEL26:
+smnf    ignore_count          
+smnf    iconst                 0
+sm      if_icmplt              LABEL27
+  nf    if_icmplt              LABEL30
+sm      jump                   LABEL30
+  nf    jump                   LABEL33
+sm   LABEL27:
+  nf LABEL30:
+smnf    sconst                 "Unable to update ignore list - system busy."
+smnf    mes                   
+sm      jump                   LABEL43
+  nf    jump                   LABEL46
+sm   LABEL30:
+  nf LABEL33:
+smnf    get_varc_int           5
+smnf    iconst                 4
+sm      if_icmpeq              LABEL34
+  nf    if_icmpeq              LABEL37
+sm      jump                   LABEL37
+  nf    jump                   LABEL40
+sm   LABEL34:
+  nf LABEL37:
+smnf    get_varc_string        359
+smnf    ignore_add            
+sm      jump                   LABEL43
+  nf    jump                   LABEL46
+sm   LABEL37:
+  nf LABEL40:
+smnf    get_varc_int           5
+smnf    iconst                 5
+sm      if_icmpeq              LABEL41
+  nf    if_icmpeq              LABEL44
+sm      jump                   LABEL43
+  nf    jump                   LABEL47
+sm   LABEL41:
+  nf LABEL44:
+smnf    get_varc_string        359
+smnf    ignore_del            
+sm   LABEL43:
+  nf LABEL46:
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL44:
+  nf LABEL47:
+smnf    friend_count          
+smnf    iconst                 0
+sm      if_icmplt              LABEL48
+  nf    if_icmplt              LABEL51
+sm      jump                   LABEL51
+  nf    jump                   LABEL54
+sm   LABEL48:
+  nf LABEL51:
+smnf    sconst                 "Unable to complete action - system busy."
+smnf    mes                   
+sm      jump                   LABEL106
+  nf    jump                   LABEL109
+sm   LABEL51:
+  nf LABEL54:
+smnf    get_varc_int           5
+smnf    iconst                 2
+sm      if_icmpeq              LABEL55
+  nf    if_icmpeq              LABEL58
+sm      jump                   LABEL58
+  nf    jump                   LABEL61
+sm   LABEL55:
+  nf LABEL58:
+smnf    get_varc_string        359
+smnf    friend_add            
+sm      jump                   LABEL106
+  nf    jump                   LABEL109
+sm   LABEL58:
+  nf LABEL61:
+smnf    get_varc_int           5
+smnf    iconst                 3
+sm      if_icmpeq              LABEL62
+  nf    if_icmpeq              LABEL65
+sm      jump                   LABEL65
+  nf    jump                   LABEL68
+sm   LABEL62:
+  nf LABEL65:
+smnf    get_varc_string        359
+smnf    friend_del            
+sm      jump                   LABEL106
+  nf    jump                   LABEL109
+sm   LABEL65:
+  nf LABEL68:
+smnf    get_varc_int           5
+smnf    iconst                 6
+sm      if_icmpeq              LABEL69
+  nf    if_icmpeq              LABEL72
+sm      jump                   LABEL106
+  nf    jump                   LABEL109
+sm   LABEL72:
+  nf LABEL69:
+smnf    get_varbit             8119
+smnf    iconst                 0
+sm      if_icmpeq              LABEL73
+  nf    if_icmpeq              LABEL76
+sm      jump                   LABEL79
+  nf    jump                   LABEL82
+sm   LABEL73:
+  nf LABEL76:
+smnf    iconst                 1
+smnf    iconst                 1
+smnf    invoke                 299
+smnf    sconst                 "You must set a name before you can chat."
+smnf    mes                   
+smnf    return                
+sm   LABEL79:
+  nf LABEL82:
+smnf    chat_getfilter_private
+smnf    iconst                 2
+sm      if_icmpeq              LABEL83
+  nf    if_icmpeq              LABEL86
+sm      jump                   LABEL94
+  nf    jump                   LABEL97
+sm   LABEL83:
+  nf LABEL86:
+smnf    chat_getfilter_public 
+smnf    iconst                 1
+smnf    chat_getfilter_trade  
+smnf    chat_setfilter        
+smnf    invoke                 178
+smnf    invoke                 553
+smnf    istore                 0
+smnf    iload                  0
+smnf    invoke                 84
+smnf    iload                  0
+smnf    invoke                 89
+sm   LABEL94:
+  nf LABEL97:
+smnf    get_varbit             4394
+smnf    iconst                 1
+sm      if_icmpeq              LABEL98
+  nf    if_icmpeq              LABEL101
+sm      jump                   LABEL101
+sm      LABEL98:
+sm      get_varc_string        360
+sm      friend_del            
+smnf    jump                   LABEL104
+smnf LABEL101:
+  nf    get_varc_string        360
+  nf    friend_del            
+  nf    jump                   LABEL107
+  nf LABEL104:
+smnf    get_varc_string        360
+smnf    get_varc_string        359
+ m f    sconst                 "privateMessage" ; load event name
+ m f    iconst                 0                ; whether or not to skip
+ m f    runelite_callback     ; invoke callback
+ m f    iconst                 1
+ m      if_icmpeq              LABEL104         ; if skipped, do not message
+   f    if_icmpeq              LABEL107         ; if skipped, do not message
+smnf    chat_sendprivate      
+sm   LABEL104:
+  nf LABEL107:
+smnf    clientclock           
+smnf    set_varc_int           61
+sm   LABEL106:
+  nf LABEL109:
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL107:
+  nf LABEL110:
+smnf    get_varc_string        359
+smnf    invoke                 212
+smnf    resume_countdialog    
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL111:
+  nf LABEL114:
+smnf    get_varc_string        359
+smnf    removetags            
+smnf    set_varc_string        361
+smnf    get_varc_string        359
+smnf    resume_namedialog     
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL117:
+  nf LABEL120:
+smnf    get_varc_string        359
+smnf    resume_stringdialog   
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL120:
+  nf LABEL123:
+smnf    get_varbit             8119
+smnf    iconst                 0
+sm      if_icmpeq              LABEL124
+  nf    if_icmpeq              LABEL127
+sm      jump                   LABEL130
+  nf    jump                   LABEL133
+sm   LABEL124:
+  nf LABEL127:
+smnf    iconst                 1
+smnf    iconst                 1
+smnf    invoke                 299
+smnf    sconst                 "You must set a name before you can chat."
+smnf    mes                   
+smnf    return                
+sm   LABEL130:
+  nf LABEL133:
+smnf    get_varc_string        359
+smnf    removetags            
+smnf    set_varc_string        362
+smnf    get_varc_string        359
+smnf    clan_joinchat         
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL136:
+  nf LABEL139:
+smnf    iload                  1
+smnf    iconst                 10
+sm      if_icmpgt              LABEL140
+  nf    if_icmpgt              LABEL143
+sm      jump                   LABEL146
+  nf    jump                   LABEL149
+sm   LABEL140:
+  nf LABEL143:
+smnf    get_varc_string        359
+smnf    iconst                 0
+smnf    iconst                 9
+smnf    substring             
+smnf    sstore                 0
+sm      jump                   LABEL148
+  nf    jump                   LABEL151
+sm   LABEL146:
+  nf LABEL149:
+smnf    get_varc_string        359
+smnf    sstore                 0
+sm   LABEL148:
+  nf LABEL151:
+smnf    sload                  0
+smnf    lowercase             
+smnf    chat_setmessagefilter 
+smnf    invoke                 553
+smnf    invoke                 84
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL154:
+  nf LABEL157:
+smnf    get_varbit             8119
+smnf    iconst                 0
+sm      if_icmpeq              LABEL158
+  nf    if_icmpeq              LABEL161
+sm      jump                   LABEL164
+  nf    jump                   LABEL167
+sm   LABEL158:
+  nf LABEL161:
+smnf    iconst                 1
+smnf    iconst                 1
+smnf    invoke                 299
+smnf    sconst                 "You must set a name before you can chat."
+smnf    mes                   
+smnf    return                
+sm   LABEL164:
+  nf LABEL167:
+smnf    get_varc_string        359
+smnf    iconst                 0
+smnf    set_varc_int           62
+smnf    set_varc_string        358
+smnf    invoke                 95
+smnf    iconst                 552
+smnf    iconst                 -2147483645
+smnf    iconst                 1
+smnf    sconst                 "I1"
+smnf    iconst                 10616845
+smnf    if_setontimer         
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL176:
+  nf LABEL179:
+smnf    iconst                 0
+smnf    iconst                 1
+smnf    invoke                 299
+smnf    return                
+sm      jump                   LABEL183
+  nf    jump                   LABEL186
+sm   LABEL181:
+  nf LABEL184:
+smnf    get_varc_string        359
+smnf    invoke                 2061
+sm   LABEL183:
+  nf LABEL186:
+sm      jump                   LABEL190
+  nf    jump                   LABEL193
+sm   LABEL184:
+  nf LABEL187:
+smnf    get_varc_int           5
+smnf    switch                
+sm         16: LABEL189
+sm         7: LABEL187
+sm         8: LABEL187
+sm         9: LABEL187
+sm         15: LABEL187       
+  nf       16: LABEL189
+  nf       7: LABEL187
+  nf       8: LABEL187
+  nf       9: LABEL187
+  nf       15: LABEL187
+sm      jump                   LABEL190
+  nf    jump                   LABEL193
+sm   LABEL187:
+  nf LABEL190:
+smnf    return                
+sm      jump                   LABEL190
+  nf    jump                   LABEL193
+sm   LABEL189:
+  nf LABEL192:
+smnf    return                
+sm   LABEL190:
+  nf LABEL193:
+smnf    iconst                 1
+smnf    iconst                 1
+smnf    invoke                 299
+smnf    return                

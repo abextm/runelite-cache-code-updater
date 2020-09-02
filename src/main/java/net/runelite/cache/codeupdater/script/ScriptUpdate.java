@@ -59,12 +59,19 @@ import org.eclipse.jgit.lib.Repository;
 @Slf4j
 public class ScriptUpdate
 {
-	private static Map<String, String> opcodeGroups = ImmutableMap.of(
-		"iload", "ilvt",
-		"istore", "ilvt",
-		"sstore", "slvt",
-		"sload", "slvt"
-	);
+	private static Map<String, String> opcodeGroups = ImmutableMap.<String, String>builder()
+		.put("iload", "ilvt")
+		.put("istore", "ilvt")
+		.put("sstore", "slvt")
+		.put("sload", "slvt")
+		.put("jump", "label")
+		.put("if_icmpeq", "label")
+		.put("if_icmpne", "label")
+		.put("if_icmplt", "label")
+		.put("if_icmpgt", "label")
+		.put("if_icmple", "label")
+		.put("if_icmpge", "label")
+		.build();
 
 	public static void update() throws IOException, GitAPIException
 	{
@@ -219,10 +226,20 @@ public class ScriptUpdate
 		{
 			if (!Objects.equals(o.getOpcode(), n.getOpcode()))
 			{
+				if (o.getOperand().isEmpty() && o.getOpcode().endsWith(":") && n.getOpcode().endsWith(":"))
+				{
+					operandMap.put("label\0" + o.getOpcode().substring(0, o.getOpcode().length() - 2),
+						n.getOpcode().substring(0, n.getOpcode().length() - 2));
+				}
 				return;
 			}
 
 			String group = opcodeGroups.get(o.getOpcode());
+			if (o.getOpcode().endsWith(":") && !o.getOperand().isEmpty() && !n.getOperand().isEmpty())
+			{
+				//case
+				group = "label";
+			}
 			if (group != null)
 			{
 				operandMap.put(group + "\0" + o.getOperand(), n.getOperand());
@@ -232,12 +249,26 @@ public class ScriptUpdate
 		ScriptLineFormatConfig identityConfig = new ScriptLineFormatConfig();
 		ScriptLineFormatConfig config = new ScriptLineFormatConfig()
 		{
-			//TODO: label mapper
+			@Override
+			String mapLabel(String label)
+			{
+				String newLabel = operandMap.get("label\0" + label.substring(0, label.length() - 2));
+				if (newLabel != null)
+				{
+					return newLabel + ":";
+				}
+				return label;
+			}
 
 			@Override
 			public String mapOperand(String opcode, String operand)
 			{
 				String group = opcodeGroups.get(opcode);
+				if (opcode.endsWith(":") && !operand.isEmpty())
+				{
+					// case
+					group = "label";
+				}
 				if (group != null)
 				{
 					return operandMap.getOrDefault(group + "\0" + operand, operand);
