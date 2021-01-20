@@ -112,6 +112,7 @@ public class Download
 				{
 					String host = hs.getHost(attempt % 16 == 0);
 					jsc = new JS5Client(store, host, oldRev, false);
+					oldRev = jsc.getRev();
 					jsc.toDownload = todo;
 					tag = UpdateHandler.calculateTag(repo, jsc.getRev());
 
