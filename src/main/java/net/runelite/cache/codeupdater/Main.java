@@ -26,6 +26,7 @@ package net.runelite.cache.codeupdater;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +45,7 @@ import net.runelite.cache.codeupdater.script.ScriptUpdate;
 import net.runelite.cache.codeupdater.srn.SRNUpdate;
 import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
 import net.runelite.cache.fs.Store;
+import net.runelite.cache.fs.jagex.DiskStorage;
 import org.eclipse.jgit.lib.Repository;
 
 @Slf4j
@@ -66,13 +68,25 @@ public class Main
 	{
 		try
 		{
-			String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
-			String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
+			String oneline;
+			if (args.length != 0)
+			{
+				next = new Store(new DiskStorage(new File(args[0])));
+				next.load();
+				oneline = args[1];
 
-			next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
-			previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master");
+				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+			}
+			else
+			{
+				String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
+				next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
+				oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
 
-			String oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
+				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
+				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+			}
 
 			versionText = oneline.replace("Cache version ", "");
 			branchName = GitUtil.envOr("BRANCH_NAME", "cache-code-" + versionText);
@@ -129,7 +143,8 @@ public class Main
 
 	public static <T extends Throwable> void execAllAndWait(Stream<RunAndThrow> runnables) throws T
 	{
-		List<Future<?>> futs = runnables.map(r -> exec.submit(() -> {
+		List<Future<?>> futs = runnables.map(r -> exec.submit(() ->
+		{
 			r.run();
 			return null;
 		})).collect(Collectors.toList());
