@@ -114,6 +114,18 @@ public class ScriptUpdate
 				}
 
 				byte[] nData = get(Main.next, id);
+				if (nData == null)
+				{
+					mc.log("lost script {} \"{}\"", id, scriptFile);
+
+					newDelta.removeFile(scriptFilePath);
+					newDelta.removeFile(GitUtil.pathJoin(root, hashFile));
+
+					mc.writeFile(scriptFilePath, ("; lost script\n" + new String(rs2asmSrc)).getBytes());
+
+					return;
+				}
+
 				String nhash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(nData).asBytes());
 
 				if (nhash.equals(ohash))
@@ -310,6 +322,10 @@ public class ScriptUpdate
 		Storage storage = store.getStorage();
 		Index index = store.getIndex(IndexType.CLIENTSCRIPT);
 		Archive archive = index.getArchive(id);
+		if (archive == null)
+		{
+			return null;
+		}
 		byte[] compressed = storage.loadArchive(archive);
 		return archive.decompress(compressed);
 	}

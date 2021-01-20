@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Setter;
@@ -74,7 +76,7 @@ public class MutableCommit
 	}
 
 	private final StringBuilder log = new StringBuilder();
-	private final Map<String, byte[]> files = new ConcurrentHashMap<>();
+	private final Map<String, byte[]> files = Collections.synchronizedMap(new HashMap<>());
 
 	public void log(String line)
 	{
@@ -93,6 +95,11 @@ public class MutableCommit
 	public void writeFile(String path, byte[] contents)
 	{
 		files.put(path, contents);
+	}
+
+	public void removeFile(String path)
+	{
+		files.put(path, null);
 	}
 
 	public OutputStream writeFile(String path)
@@ -139,6 +146,11 @@ public class MutableCommit
 			DirCacheEditor indexBuilder = index.editor();
 			for (Map.Entry<String, byte[]> file : files.entrySet())
 			{
+				if (file.getValue() == null)
+				{
+					indexBuilder.add(new DirCacheEditor.DeletePath(file.getKey()));
+					continue;
+				}
 				ObjectId blob = inser.insert(Constants.OBJ_BLOB, file.getValue());
 				indexBuilder.add(new PathEdit(file.getKey(), e -> {
 					e.setObjectId(blob);

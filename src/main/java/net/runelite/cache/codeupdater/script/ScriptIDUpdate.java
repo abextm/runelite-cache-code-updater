@@ -82,6 +82,12 @@ public class ScriptIDUpdate
 				}
 
 				byte[] newScript = ScriptUpdate.get(Main.next, id);
+				if (newScript == null)
+				{
+					mc.log("lost script {}", id);
+					scriptIDLiteral.replace(new IntegerLiteralExpr(-1));
+					continue;
+				}
 				ScriptDefinition script = loader.load(id, newScript);
 
 				AnnotationExpr allAnn = fdecl.getAnnotationByName("ScriptArguments").orElse(null);
