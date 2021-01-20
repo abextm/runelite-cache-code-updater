@@ -37,7 +37,9 @@ import com.github.javaparser.ast.expr.SimpleName;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.InterfaceManager;
@@ -66,24 +68,40 @@ public class WidgetUpdate
 		MutableCommit mc = new MutableCommit("Widget IDs");
 
 		Map<Integer, Map<Integer, IntegerLiteralExpr>> groupChildDecls = new HashMap<>();
+		Map<Integer, Set<IntegerLiteralExpr>> groupDecls = new HashMap<>();
 
 		EnumDeclaration widgetInfo = (EnumDeclaration) widgetInfoCU.getCompilationUnit().getTypes().get(0);
 		for (EnumConstantDeclaration decl : widgetInfo.getEntries())
 		{
-			int group = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(0)).asInt();
+			IntegerLiteralExpr group = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(0));
+			int groupID = group.asInt();
 			IntegerLiteralExpr child = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(1));
 			groupChildDecls
-				.computeIfAbsent(group, v -> new HashMap<>())
+				.computeIfAbsent(groupID, v -> new HashMap<>())
 				.put(child.asInt(), child);
+			groupDecls
+				.computeIfAbsent(groupID, v -> new HashSet<>())
+				.add(group);
 		}
 
 		for (Map.Entry<Integer, Map<Integer, IntegerLiteralExpr>> groupEntry : groupChildDecls.entrySet())
 		{
 			int group = groupEntry.getKey();
 
+			InterfaceDefinition[] newIG = ifmNew.getIntefaceGroup(group);
+			if (newIG == null)
+			{
+				mc.log("lost interface {}", group);
+				for (IntegerLiteralExpr gexpr : groupDecls.get(group))
+				{
+					gexpr.replace(new IntegerLiteralExpr(-1));
+				}
+				continue;
+			}
+
 			Mapping<InterfaceDefinition> mapping = Mapping.of(
 				ImmutableList.copyOf(ifmOld.getIntefaceGroup(group)),
-				ImmutableList.copyOf(ifmNew.getIntefaceGroup(group)),
+				ImmutableList.copyOf(newIG),
 				new WidgetMapper());
 
 			for (Map.Entry<Integer, IntegerLiteralExpr> childEntry : groupEntry.getValue().entrySet())
