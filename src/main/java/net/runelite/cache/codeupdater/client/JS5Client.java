@@ -55,7 +55,7 @@ public class JS5Client implements Closeable
 	public static final int EXIT = -2;
 
 	private static final int MAX_REV_BUMPS = 10;
-	private static final int MAX_OUT = 20;
+	private static final int MAX_OUT = 200;
 
 	private final Logger log;
 
