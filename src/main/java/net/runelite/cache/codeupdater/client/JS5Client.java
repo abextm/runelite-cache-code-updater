@@ -236,12 +236,12 @@ public class JS5Client implements Closeable
 				out.remove(index << 16 | archive);
 				skip = false;
 
-				handleDonwload(index, archive, buffer);
+				handleDownload(index, archive, buffer);
 			}
 		}
 	}
 
-	protected void handleDonwload(int indexID, int archiveID, byte[] compressed) throws IOException
+	protected void handleDownload(int indexID, int archiveID, byte[] compressed) throws IOException
 	{
 		if (seenChange)
 		{
@@ -290,8 +290,11 @@ public class JS5Client implements Closeable
 				assert con.crc == idx.getCrc();
 				assert con.revision == idx.getRevision();
 
+				Set<Integer> archiveIDs = new HashSet<>();
+
 				for (ArchiveData ard : idxd.getArchives())
 				{
+					archiveIDs.add(ard.getId());
 					Archive ar = idx.getArchive(ard.getId());
 					if (ar == null)
 					{
@@ -317,6 +320,11 @@ public class JS5Client implements Closeable
 					ar.setFileData(ard.getFiles());
 
 					enqueueDownload(idx.getId(), ar.getArchiveId());
+				}
+
+				if (idx.getArchives().removeIf(ar -> !archiveIDs.contains(ar.getArchiveId())))
+				{
+					seenChange = true;
 				}
 			}
 		}
