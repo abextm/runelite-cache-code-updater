@@ -24,6 +24,7 @@
  */
 package net.runelite.cache.codeupdater.script;
 
+import com.google.common.base.Strings;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -147,7 +148,7 @@ public class ScriptSource
 		}
 	}
 
-	private static Pattern LINE_MATCHER = Pattern.compile("(?m)^(?<prefix> *)((?<opcode>[^ ;\"\n]+) *)?(?<operand>[^;\n]*?)(?<comment> *;.*)?$");
+	private static Pattern LINE_MATCHER = Pattern.compile("(?m)^(?<prefix> *)(?<opcode>[^ ;\"\n]+ *)?(?<operand>[^;\n]*?)(?<comment> *;.*)?$");
 
 	public ScriptSource()
 	{
@@ -175,9 +176,22 @@ public class ScriptSource
 		{
 			Line l = new Line();
 			l.setPrefix(m.group("prefix"));
-			l.setOpcode(m.group("opcode"));
+			String opcode = m.group("opcode");
+			String trimOp = null;
+			int extraWhitespace = 0;
+			if (opcode != null)
+			{
+				trimOp = opcode.trim();
+				extraWhitespace = opcode.length() - Math.max(22, trimOp.length());
+			}
+			l.setOpcode(trimOp);
 			l.setOperand(m.group("operand"));
-			l.setComment(m.group("comment"));
+			String comment = m.group("comment");
+			if (l.getOperand().isEmpty() && extraWhitespace > 0 && comment != null)
+			{
+				comment = Strings.repeat(" ", extraWhitespace) + comment;
+			}
+			l.setComment(comment);
 			if (l.getOpcode() != null && l.getOpcode().startsWith("."))
 			{
 				header.put(l.getOpcode(), l.getOperand());
