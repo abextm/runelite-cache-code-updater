@@ -33,7 +33,7 @@ jobs:
           osrs_cache
           runelite
           srn
-        key: repos
+        key: repos2
     - name: "Run"
       env:
         KEYS: ${{ secrets.KEYS }}
