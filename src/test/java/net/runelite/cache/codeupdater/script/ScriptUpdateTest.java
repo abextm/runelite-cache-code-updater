@@ -26,6 +26,7 @@ package net.runelite.cache.codeupdater.script;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Assert;
@@ -76,10 +77,10 @@ public class ScriptUpdateTest
 		{
 			fis.put(c, new StringBuilder());
 		}
-		new BufferedReader(new InputStreamReader(ScriptUpdateTest.class.getResourceAsStream(name))).lines()
+		new BufferedReader(new InputStreamReader(ScriptUpdateTest.class.getResourceAsStream(name), StandardCharsets.UTF_8)).lines()
 			.forEach(l -> {
 				String line = l.substring(5);
-				byte[] ident = l.substring(0, 4).getBytes();
+				byte[] ident = l.substring(0, 4).getBytes(StandardCharsets.UTF_8);
 				for (byte c : ident)
 				{
 					if (c != ' ')

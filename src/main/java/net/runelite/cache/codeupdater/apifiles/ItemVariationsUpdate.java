@@ -98,7 +98,7 @@ public class ItemVariationsUpdate
 
 		Map<String, Collection<Integer>> map = mmap.asMap();
 		map.entrySet().removeIf(e -> e.getValue().size() <= 1);
-		mc.writeFile("runelite-client/src/main/resources/item_variations.json", Main.GSON.toJson(map).getBytes());
+		mc.writeFile("runelite-client/src/main/resources/item_variations.json", Main.GSON.toJson(map));
 		mc.finish(Repo.RUNELITE.get(), Main.branchName);
 	}
 }

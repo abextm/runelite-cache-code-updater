@@ -62,7 +62,7 @@ public class DumpVanilla
 
 			File scriptFile = new File(hashFile.toString().replace(".hash", ".rs2asm"));
 			byte[] rs2asmSrc = Files.toByteArray(scriptFile);
-			ScriptSource oldModSource = new ScriptSource(new String(rs2asmSrc));
+			ScriptSource oldModSource = new ScriptSource(new String(rs2asmSrc, StandardCharsets.UTF_8));
 
 			int id = Integer.parseInt(oldModSource.getHeader().get(".id"));
 			byte[] data = get(store, id);

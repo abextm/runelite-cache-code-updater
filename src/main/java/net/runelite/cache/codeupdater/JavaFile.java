@@ -60,10 +60,10 @@ public class JavaFile
 	public JavaFile(ParserConfiguration config, Repository repo, String commitish, String file) throws IOException
 	{
 		this.path = file;
-		byte[] data = GitUtil.readFile(repo, commitish, path);
+		String src = GitUtil.readFileString(repo, commitish, path);
 
 		ParseResult<CompilationUnit> result = new JavaParser(config)
-			.parse(new String(data));
+			.parse(src);
 		if (!result.isSuccessful())
 		{
 			throw new ParseProblemException(result.getProblems());
@@ -76,6 +76,6 @@ public class JavaFile
 	public void save(MutableCommit mc)
 	{
 		String str = LexicalPreservingPrinter.print(compilationUnit);
-		mc.writeFile(path, str.getBytes());
+		mc.writeFile(path, str);
 	}
 }

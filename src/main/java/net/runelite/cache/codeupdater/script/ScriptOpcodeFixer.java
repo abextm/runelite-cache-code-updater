@@ -26,6 +26,7 @@ package net.runelite.cache.codeupdater.script;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,7 +57,7 @@ public class ScriptOpcodeFixer
 				if (path.toString().endsWith(".rs2asm"))
 				{
 					System.out.println("Editing \"" + path + "\"");
-					ScriptSource ss = new ScriptSource(new String(Files.readAllBytes(path)));
+					ScriptSource ss = new ScriptSource(new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
 					StringBuilder out = new StringBuilder();
 					out.append(ss.getPrelude());
 					for (Map.Entry<String, String> hf : ss.getHeader().entrySet())
@@ -67,7 +68,7 @@ public class ScriptOpcodeFixer
 					{
 						out.append(line.format(config)).append("\n");
 					}
-					Files.write(path, out.toString().getBytes());
+					Files.write(path, out.toString().getBytes(StandardCharsets.UTF_8));
 				}
 				return FileVisitResult.CONTINUE;
 			}

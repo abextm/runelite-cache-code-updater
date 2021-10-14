@@ -291,7 +291,7 @@ public class SRNUpdate
 		String itemNameJSON = Main.GSON.toJson(itemNames);
 
 		MutableCommit nameCommit = new MutableCommit("Item Names");
-		nameCommit.writeFile("cache/item/names.json", itemNameJSON.getBytes());
+		nameCommit.writeFile("cache/item/names.json", itemNameJSON);
 		nameCommit.finish(Repo.SRN.get(), Main.branchName);
 	}
 

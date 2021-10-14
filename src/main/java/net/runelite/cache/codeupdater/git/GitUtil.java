@@ -26,6 +26,7 @@ package net.runelite.cache.codeupdater.git;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -142,6 +143,17 @@ public final class GitUtil
 
 			return tw.getObjectReader().open(tw.getObjectId(0)).getBytes();
 		}
+	}
+
+	public static String readFileString(Repository repo, String commitish, String path) throws IOException
+	{
+		byte[] b = readFile(repo, commitish, path);
+		if (b == null)
+		{
+			return null;
+		}
+
+		return new String(b, StandardCharsets.UTF_8);
 	}
 
 	public static String envOr(String name, String defaul)

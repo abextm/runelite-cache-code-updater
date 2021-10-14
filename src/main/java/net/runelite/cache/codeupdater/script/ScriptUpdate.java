@@ -32,6 +32,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -93,15 +94,15 @@ public class ScriptUpdate
 				String scriptFile = hashFile.replace(".hash", ".rs2asm");
 				String scriptFilePath = GitUtil.pathJoin(root, scriptFile);
 
-				byte[] rs2asmSrc = GitUtil.readFile(rl, Main.branchName, scriptFilePath);
-				ScriptSource oldModSource = new ScriptSource(new String(rs2asmSrc));
+				String rs2asmSrc = GitUtil.readFileString(rl, Main.branchName, scriptFilePath);
+				ScriptSource oldModSource = new ScriptSource(rs2asmSrc);
 
 				int id = Integer.parseInt(oldModSource.getHeader().get(".id"));
 
 				String thash;
 				try (ObjectReader or = rl.newObjectReader())
 				{
-					thash = new String(or.open(ent.getValue()).getBytes()).trim();
+					thash = new String(or.open(ent.getValue()).getBytes(), StandardCharsets.UTF_8).trim();
 				}
 
 				byte[] oData = get(Main.previous, id);
@@ -121,7 +122,7 @@ public class ScriptUpdate
 					newDelta.removeFile(scriptFilePath);
 					newDelta.removeFile(GitUtil.pathJoin(root, hashFile));
 
-					mc.writeFile(scriptFilePath, ("; lost script\n" + new String(rs2asmSrc)).getBytes());
+					mc.writeFile(scriptFilePath, ("; lost script\n" + rs2asmSrc));
 
 					return;
 				}
@@ -137,11 +138,11 @@ public class ScriptUpdate
 
 				String oldSrcStr = disassembler.disassemble(loader.load(id, oData));
 				ScriptSource oldSource = new ScriptSource(oldSrcStr);
-				oldDelta.writeFile(scriptFilePath, oldSrcStr.getBytes());
+				oldDelta.writeFile(scriptFilePath, oldSrcStr);
 
 				String newSrcStr = disassembler.disassemble(loader.load(id, nData));
 				ScriptSource newSource = new ScriptSource(newSrcStr);
-				newDelta.writeFile(scriptFilePath, newSrcStr.getBytes());
+				newDelta.writeFile(scriptFilePath, newSrcStr);
 
 				String newModSource = updateScript(oldSource, newSource, oldModSource);
 
@@ -149,15 +150,15 @@ public class ScriptUpdate
 				try
 				{
 					Assembler assembler = new Assembler(RuneLiteInstructions.instance);
-					assembler.assemble(new ByteArrayInputStream(newModSource.getBytes()));
+					assembler.assemble(new ByteArrayInputStream(newModSource.getBytes(StandardCharsets.UTF_8)));
 				}
 				catch (Exception e)
 				{
 					mc.log("Updated script does not assemble {}", scriptFile, e);
 				}
 
-				mc.writeFile(GitUtil.pathJoin(root, hashFile), nhash.getBytes());
-				mc.writeFile(scriptFilePath, newModSource.getBytes());
+				mc.writeFile(GitUtil.pathJoin(root, hashFile), nhash);
+				mc.writeFile(scriptFilePath, newModSource);
 				log.info("Updated script {}", scriptFile);
 			}));
 
