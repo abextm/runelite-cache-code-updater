@@ -36,6 +36,7 @@ import com.github.javaparser.ast.expr.IntegerLiteralExpr;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -99,8 +100,15 @@ public class WidgetUpdate
 				continue;
 			}
 
+			InterfaceDefinition[] oldIG = ifmOld.getIntefaceGroup(group);
+
+			if (!Arrays.equals(oldIG, newIG))
+			{
+				log.info("interface {} changed", group);
+			}
+
 			Mapping<InterfaceDefinition> mapping = Mapping.of(
-				ImmutableList.copyOf(ifmOld.getIntefaceGroup(group)),
+				ImmutableList.copyOf(oldIG),
 				ImmutableList.copyOf(newIG),
 				new WidgetMapper());
 
@@ -122,7 +130,7 @@ public class WidgetUpdate
 				}
 				catch (Exception e)
 				{
-					mc.log("Error mapping {}.{}: {}", group, child, e);
+					mc.log("Error mapping {}.{}:", group, child, e);
 				}
 			}
 		}
