@@ -1,0 +1,13 @@
+smnf .id                 0
+smnf .int_stack_count    0
+smnf .string_stack_count 0
+smnf .int_var_count      0
+smnf .string_var_count   0
+smnf    jump                   LABEL550
+smnf LABEL368:
+ m f    iload                  12 ; message uid
+ m f    sconst                 "chatMessageBuilding"
+ m f    runelite_callback     
+ m f    pop_int               
+smnf    iload                  18
+smnf    switch                

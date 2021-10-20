@@ -70,6 +70,12 @@ public class ScriptUpdateTest
 		testScript("switch.txt");
 	}
 
+	@Test
+	public void swap()
+	{
+		testScript("swap.txt");
+	}
+
 	private void testScript(String name)
 	{
 		Map<Character, StringBuilder> fis = new HashMap<>();

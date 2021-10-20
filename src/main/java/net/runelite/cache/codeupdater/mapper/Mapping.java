@@ -111,10 +111,15 @@ public class Mapping<T>
 				double alt = dist[u] + 1;
 				if (oi > 0 && ni > 0)
 				{
-					alt = dist[u] + (.1 + compare.difference(
-						old.get(oi - 1),
-						neew.get(ni - 1)
-					)) * (d == (stride + 1) ? 1.1 : 1.0);
+					double cost = 1;
+					if (d == (stride + 1))
+					{
+						cost = compare.difference(
+							old.get(oi - 1),
+							neew.get(ni - 1)
+						);
+					}
+					alt = dist[u] + cost;
 				}
 
 				if (alt < dist[v])
