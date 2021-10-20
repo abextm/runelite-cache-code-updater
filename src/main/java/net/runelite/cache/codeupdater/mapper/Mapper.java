@@ -31,4 +31,9 @@ public interface Mapper<T>
 	 * Returns zero if a == b, increasing the more different a is to b
 	 */
 	double difference(T a, T b);
+
+	default String string(T v)
+	{
+		return v.toString();
+	}
 }

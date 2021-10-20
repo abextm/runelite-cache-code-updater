@@ -186,6 +186,12 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 		return diff / total;
 	}
 
+	@Override
+	public String string(InterfaceDefinition v)
+	{
+		return (v.getId() & 0xFFFF) + "";
+	}
+
 	private void testListener(Function<InterfaceDefinition, Object[]> fn)
 	{
 		total += .2;

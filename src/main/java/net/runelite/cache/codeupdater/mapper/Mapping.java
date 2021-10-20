@@ -134,34 +134,34 @@ public class Mapping<T>
 
 		if (printMap)
 		{
-			System.out.println();
-			System.out.print("      |");
-			System.out.print("      |");
-			System.out.print("\033[41m");
+			System.err.println();
+			System.err.print("      |");
+			System.err.print("      |");
+			System.err.print("\033[41m");
 			for (int i = 1; i < stride; i++)
 			{
-				String str = "     " + neew.get(i - 1);
-				System.out.print(str.substring(str.length() - 6) + "|");
+				String str = "     " + compare.string(neew.get(i - 1));
+				System.err.print(str.substring(str.length() - 6) + "|");
 			}
-			System.out.print("\033[0m");
+			System.err.print("\033[0m");
 			for (int ii = 0; ii < dist.length; ii++)
 			{
 				if (ii % stride == 0)
 				{
-					System.out.println();
+					System.err.println();
 					if (ii < stride)
 					{
-						System.out.print("      |");
+						System.err.print("      |");
 					}
 					else
 					{
-						String str = "     " + old.get((ii / stride) - 1);
-						System.out.print("\033[44m" + str.substring(str.length() - 6) + "|\033[0m");
+						String str = "     " + compare.string(old.get((ii / stride) - 1));
+						System.err.print("\033[44m" + str.substring(str.length() - 6) + "|\033[0m");
 					}
 				}
 				if (dist[ii] == Double.MAX_VALUE)
 				{
-					System.out.print("      |");
+					System.err.print("      |");
 				}
 				else
 				{
@@ -190,16 +190,17 @@ public class Mapping<T>
 					}
 					if (color != null)
 					{
-						System.out.print(color);
+						System.err.print(color);
 					}
-					System.out.printf("%6.1f|", dist[ii]);
+					System.err.printf("%6.1f|", dist[ii]);
 					if (color != null)
 					{
-						System.out.print("\033[0m");
+						System.err.print("\033[0m");
 					}
 				}
 			}
-			System.out.println();
+			System.err.println();
+			System.err.flush();
 		}
 
 		int i = dist.length - 1;

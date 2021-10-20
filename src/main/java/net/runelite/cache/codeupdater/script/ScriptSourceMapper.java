@@ -52,4 +52,10 @@ public class ScriptSourceMapper implements Mapper<ScriptSource.Line>
 
 		return 1 - sim;
 	}
+
+	@Override
+	public String string(ScriptSource.Line v)
+	{
+		return v.getOpcode() + v.getOperand();
+	}
 }
