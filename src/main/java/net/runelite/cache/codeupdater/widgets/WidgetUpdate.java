@@ -34,11 +34,12 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.IntegerLiteralExpr;
 import com.github.javaparser.ast.expr.SimpleName;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -108,8 +109,8 @@ public class WidgetUpdate
 			}
 
 			Mapping<InterfaceDefinition> mapping = Mapping.of(
-				ImmutableList.copyOf(oldIG),
-				ImmutableList.copyOf(newIG),
+				sorted(oldIG),
+				sorted(newIG),
 				new WidgetMapper());
 
 			for (Map.Entry<Integer, IntegerLiteralExpr> childEntry : groupEntry.getValue().entrySet())
@@ -138,6 +139,27 @@ public class WidgetUpdate
 		widgetInfoCU.save(mc);
 		widgetIDCU.save(mc);
 		mc.finish(rl, Main.branchName);
+	}
+
+	private static List<InterfaceDefinition> sorted(InterfaceDefinition[] defs)
+	{
+		List<InterfaceDefinition> out = new ArrayList<>();
+		sorted(out, defs, -1);
+		return out;
+	}
+
+	private static void sorted(List<InterfaceDefinition> out, InterfaceDefinition[] defs, int parent)
+	{
+		for (InterfaceDefinition id : defs)
+		{
+			if (id.getParentId() != parent)
+			{
+				continue;
+			}
+
+			out.add(id);
+			sorted(out, defs, id.getId());
+		}
 	}
 
 	private static IntegerLiteralExpr resolveFieldAccess(CompilationUnit widgetIDCU, Node n)

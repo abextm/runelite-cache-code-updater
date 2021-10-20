@@ -38,19 +38,22 @@ import net.runelite.cache.definitions.InterfaceDefinition;
 
 public class WidgetMapper implements Mapper<InterfaceDefinition>
 {
+	private static final InterfaceDefinition EMPTY = new InterfaceDefinition();
+
 	private InterfaceDefinition a;
 	private InterfaceDefinition b;
 
-	private double diff = 0;
-	private double total = 0;
+	private double diff;
+	private double total;
 
 	@Override
 	public double difference(InterfaceDefinition a, InterfaceDefinition b)
 	{
-		assert a == null;
-		assert b == null;
 		this.a = a;
 		this.b = b;
+
+		diff = 0;
+		total = .01;
 
 		if (!a.isIf3 || !b.isIf3)
 		{
@@ -80,7 +83,11 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 		}
 		int type = a.type;
 
-		test(InterfaceDefinition::getContentType);
+		if (a.contentType != b.contentType)
+		{
+			return 1;
+		}
+
 		test(InterfaceDefinition::getOriginalX);
 		test(InterfaceDefinition::getOriginalY);
 		test(InterfaceDefinition::getOriginalWidth);
@@ -89,7 +96,6 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 		test(InterfaceDefinition::getHeightMode);
 		test(InterfaceDefinition::getXPositionMode);
 		test(InterfaceDefinition::getYPositionMode);
-		test(InterfaceDefinition::getParentId);
 		test(InterfaceDefinition::isHidden);
 
 		if (type == 0)
@@ -194,7 +200,6 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 
 	private void testListener(Function<InterfaceDefinition, Object[]> fn)
 	{
-		total += .2;
 		Object[] ab = fn.apply(a);
 		Object[] bb = fn.apply(b);
 
@@ -202,20 +207,20 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 		{
 			return;
 		}
-		total += 1.8;
+		total += 5;
 		if (ab == null || bb == null)
 		{
-			diff += 2;
+			diff += 5;
 			return;
 		}
 
 		if (!Objects.equals(ab[0], bb[0]))
 		{
-			diff += 1;
+			diff += 3;
 		}
 		if (!Arrays.deepEquals(ab, bb))
 		{
-			diff += 1;
+			diff += 2;
 		}
 	}
 
@@ -246,7 +251,6 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 
 	private void testTrigger(Function<InterfaceDefinition, int[]> fn)
 	{
-		total += .5;
 		int[] ab = fn.apply(a);
 		int[] bb = fn.apply(b);
 
@@ -255,7 +259,7 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 			return;
 		}
 
-		total += .5;
+		total += 2;
 		if (ab == null || bb == null)
 		{
 			diff += 1;
@@ -271,8 +275,17 @@ public class WidgetMapper implements Mapper<InterfaceDefinition>
 
 	private void test(Function<InterfaceDefinition, Object> fn)
 	{
+		Object va = fn.apply(a);
+		Object vb = fn.apply(b);
+		Object d = fn.apply(EMPTY);
+
+		if (Objects.equals(d, va) && Objects.equals(d, vb))
+		{
+			return;
+		}
+
 		total += 1;
-		if (!Objects.equals(fn.apply(a), fn.apply(b)))
+		if (!Objects.equals(va, vb))
 		{
 			diff += 1;
 		}
