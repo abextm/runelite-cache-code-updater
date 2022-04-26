@@ -60,9 +60,15 @@ public class ScriptOpcodeFixer
 					ScriptSource ss = new ScriptSource(new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
 					StringBuilder out = new StringBuilder();
 					out.append(ss.getPrelude());
-					for (Map.Entry<String, String> hf : ss.getHeader().entrySet())
+					for (Map.Entry<String, ScriptSource.Line> hf : ss.getHeader().entrySet())
 					{
-						out.append(String.format("%-19s %s\n", hf.getKey(), hf.getValue()));
+						out.append(String.format("%-19s ", hf.getKey()));
+						out.append(hf.getValue().getOperand());
+						if (hf.getValue().getComment() != null)
+						{
+							out.append(hf.getValue().getComment());
+						}
+						out.append("\n");
 					}
 					for (ScriptSource.Line line : ss.getLines())
 					{

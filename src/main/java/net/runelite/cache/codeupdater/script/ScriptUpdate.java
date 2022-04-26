@@ -34,7 +34,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,11 +59,13 @@ import org.eclipse.jgit.lib.Repository;
 @Slf4j
 public class ScriptUpdate
 {
-	private static Map<String, String> opcodeGroups = ImmutableMap.<String, String>builder()
-		.put("iload", "ilvt")
-		.put("istore", "ilvt")
-		.put("sstore", "slvt")
-		.put("sload", "slvt")
+	private static final String ILVT = "ilvt";
+	private static final String SLVT = "Slvt";
+	private static final Map<String, String> opcodeGroups = ImmutableMap.<String, String>builder()
+		.put("iload", ILVT)
+		.put("istore", ILVT)
+		.put("sstore", SLVT)
+		.put("sload", SLVT)
 		.put("jump", "label")
 		.put("if_icmpeq", "label")
 		.put("if_icmpne", "label")
@@ -97,7 +98,7 @@ public class ScriptUpdate
 				String rs2asmSrc = GitUtil.readFileString(rl, Main.branchName, scriptFilePath);
 				ScriptSource oldModSource = new ScriptSource(rs2asmSrc);
 
-				int id = Integer.parseInt(oldModSource.getHeader().get(".id"));
+				int id = Integer.parseInt(oldModSource.getHeader().get(".id").getOperand());
 
 				String thash;
 				try (ObjectReader or = rl.newObjectReader())
@@ -149,7 +150,7 @@ public class ScriptUpdate
 				// Just make sure it atleast assembles still
 				try
 				{
-					Assembler assembler = new Assembler(RuneLiteInstructions.instance);
+					Assembler assembler = new Assembler(ScriptSource.RUNELITE_INSTRUCTIONS);
 					assembler.assemble(new ByteArrayInputStream(newModSource.getBytes(StandardCharsets.UTF_8)));
 				}
 				catch (Exception e)
@@ -194,29 +195,46 @@ public class ScriptUpdate
 		Mapping<ScriptSource.Line> osDom = Mapping.of(oldS.getLines(), oldM.getLines(), new ScriptSourceMapper());
 		Mapping<ScriptSource.Line> osDns = Mapping.of(oldS.getLines(), newS.getLines(), new ScriptSourceMapper());
 
+		Map<String, Integer> defaultLVTIncrement = new HashMap<>();
+
 		StringBuilder out = new StringBuilder();
 		out.append(oldM.getPrelude());
 
-		HashMap<String, String> headers = new LinkedHashMap<>(newS.getHeader());
-		HashMap<String, String> modHeaders = new LinkedHashMap<>();
-		for (Map.Entry<String, String> hf : oldM.getHeader().entrySet())
+		for (String key : oldM.getHeader().keySet())
 		{
-			String osv = oldS.getHeader().get(hf.getKey());
-			String omv = hf.getValue();
-			if (omv != null && osv == null)
-			{
-				modHeaders.put(hf.getKey(), hf.getValue());
-			}
-			if (!Objects.equals(osv, omv))
-			{
-				headers.put(hf.getKey(), hf.getValue());
-			}
-		}
-		modHeaders.putAll(headers);
+			ScriptSource.Line os = oldS.getHeader().get(key);
+			ScriptSource.Line om = oldM.getHeader().get(key);
+			ScriptSource.Line ns = newS.getHeader().get(key);
 
-		for (Map.Entry<String, String> hf : modHeaders.entrySet())
-		{
-			out.append(String.format("%-19s %s\n", hf.getKey(), hf.getValue()));
+			String val = om.getOperand();
+			if (key.endsWith("_count"))
+			{
+				int osv = Integer.parseInt(os.getOperand());
+				int omv = Integer.parseInt(om.getOperand());
+				int nsv = Integer.parseInt(ns.getOperand());
+				int add = omv - osv;
+				val = "" + (nsv + add);
+
+				if (add != 0)
+				{
+					if (".string_var_count".equals(key))
+					{
+						defaultLVTIncrement.put(SLVT, add);
+					}
+					if (".int_var_count".equals(key))
+					{
+						defaultLVTIncrement.put(ILVT, add);
+					}
+				}
+			}
+
+			out.append(String.format("%-19s ", key));
+			out.append(val);
+			if (om.getComment() != null)
+			{
+				out.append(om.getComment());
+			}
+			out.append("\n");
 		}
 
 		Multimap<ScriptSource.Line, ScriptSource.Line> insertions = MultimapBuilder.hashKeys().arrayListValues().build();
@@ -284,7 +302,16 @@ public class ScriptUpdate
 				}
 				if (group != null)
 				{
-					return operandMap.getOrDefault(group + "\0" + operand, operand);
+					String override = operandMap.get(group + "\0" + operand);
+					if (override != null)
+					{
+						return override;
+					}
+					Integer add = defaultLVTIncrement.get(group);
+					if (add != null)
+					{
+						return "" + (Integer.parseInt(operand) + add);
+					}
 				}
 				return operand;
 			}

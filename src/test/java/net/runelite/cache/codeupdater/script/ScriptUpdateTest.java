@@ -76,6 +76,12 @@ public class ScriptUpdateTest
 		testScript("swap.txt");
 	}
 
+	@Test
+	public void lvt()
+	{
+		testScript("lvt.txt");
+	}
+
 	private void testScript(String name)
 	{
 		Map<Character, StringBuilder> fis = new HashMap<>();

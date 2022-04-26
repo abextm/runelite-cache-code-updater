@@ -38,15 +38,22 @@ import lombok.Setter;
 import lombok.ToString;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.script.Instruction;
+import net.runelite.cache.script.RuneLiteInstructions;
 import net.runelite.cache.script.disassembler.Disassembler;
 
 public class ScriptSource
 {
+	static final RuneLiteInstructions RUNELITE_INSTRUCTIONS = new RuneLiteInstructions();
+	static
+	{
+		RUNELITE_INSTRUCTIONS.init();
+	}
+
 	@Getter
 	private String prelude = "";
 
 	@Getter
-	private final Map<String, String> header = new LinkedHashMap<>();
+	private final Map<String, Line> header = new LinkedHashMap<>();
 
 	@Getter
 	private final ArrayList<Line> lines = new ArrayList<>();
@@ -85,12 +92,12 @@ public class ScriptSource
 				return null;
 			}
 
-			Instruction instr = RuneLiteInstructions.instance.find(opcode);
+			Instruction instr = RUNELITE_INSTRUCTIONS.find(opcode);
 			if (instr == null)
 			{
 				try
 				{
-					instr = RuneLiteInstructions.instance.find(Integer.parseInt(opcode));
+					instr = RUNELITE_INSTRUCTIONS.find(Integer.parseInt(opcode));
 				}
 				catch (NumberFormatException e)
 				{
@@ -194,7 +201,7 @@ public class ScriptSource
 			l.setComment(comment);
 			if (l.getOpcode() != null && l.getOpcode().startsWith("."))
 			{
-				header.put(l.getOpcode(), l.getOperand());
+				header.put(l.getOpcode(), l);
 			}
 			else if (!header.isEmpty())
 			{
