@@ -281,18 +281,34 @@ public class SRNUpdate
 
 		imCommit.finish(Repo.SRN.get(), Main.branchName);
 
-		Map<Integer, String> itemNames = nim.getItems().stream()
-			.filter(i -> !Strings.isNullOrEmpty(i.name) && !"null".equalsIgnoreCase(i.name))
-			.collect(ImmutableMap.toImmutableMap(
-				i -> i.id,
-				i -> i.name
-			));
+		MutableCommit itemMetaCommit = new MutableCommit("Item Metadata");
 
-		String itemNameJSON = Main.GSON.toJson(itemNames);
+		{
+			Map<Integer, String> itemNames = nim.getItems().stream()
+				.filter(i -> i.placeholderTemplateId == -1)
+				.filter(i -> !Strings.isNullOrEmpty(i.name) && !"null".equalsIgnoreCase(i.name))
+				.collect(ImmutableMap.toImmutableMap(
+					i -> i.id,
+					i -> i.name
+				));
 
-		MutableCommit nameCommit = new MutableCommit("Item Names");
-		nameCommit.writeFile("cache/item/names.json", itemNameJSON);
-		nameCommit.finish(Repo.SRN.get(), Main.branchName);
+			String itemNameJSON = Main.GSON.toJson(itemNames);
+			itemMetaCommit.writeFile("cache/item/names.json", itemNameJSON);
+		}
+
+		{
+			Map<Integer, Integer> itemNotes = nim.getItems().stream()
+				.filter(i -> i.notedTemplate != -1)
+				.filter(i -> !Strings.isNullOrEmpty(i.name) && !"null".equalsIgnoreCase(i.name))
+				.collect(ImmutableMap.toImmutableMap(
+					i -> i.id,
+					i -> i.notedID
+				));
+
+			String itemNotesJSON = Main.GSON.toJson(itemNotes);
+			itemMetaCommit.writeFile("cache/item/notes.json", itemNotesJSON);
+		}
+		itemMetaCommit.finish(Repo.SRN.get(), Main.branchName);
 	}
 
 	private static boolean imagesEqual(BufferedImage a, BufferedImage b)
