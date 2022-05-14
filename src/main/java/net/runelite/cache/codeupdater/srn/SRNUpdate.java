@@ -115,22 +115,11 @@ public class SRNUpdate
 		return itemIDs;
 	}
 
-	private static void updateNotes(ItemManager im)
-	{
-		for(ItemDefinition item : im.getItems())
-		{
-			if (item.notedTemplate != -1)
-			{
-				item.updateNote(im.provide(item.notedTemplate), im.provide(item.notedID));
-			}
-		}
-	}
-
 	public static void update() throws IOException
 	{
 		ItemManager nim = new ItemManager(Main.next);
 		nim.load();
-		updateNotes(nim);
+		nim.link();
 		Map<Integer, ItemDefinition> nis = filterAndMapForCount(nim);
 		ModelProvider nmm = modelProvider(Main.next);
 		SpriteManager nsm = new SpriteManager(Main.next);
@@ -140,7 +129,7 @@ public class SRNUpdate
 
 		ItemManager pim = new ItemManager(Main.previous);
 		pim.load();
-		updateNotes(pim);
+		pim.link();
 		Map<Integer, ItemDefinition> pis = filterAndMapForCount(pim);
 		ModelProvider pmm = modelProvider(Main.previous);
 		SpriteManager psm = new SpriteManager(Main.previous);
