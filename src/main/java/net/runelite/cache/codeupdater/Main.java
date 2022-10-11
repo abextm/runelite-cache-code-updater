@@ -71,9 +71,17 @@ public class Main
 			String oneline;
 			if (args.length != 0)
 			{
-				next = new Store(new DiskStorage(new File(args[0])));
+				File fi = new File(args[0]);
+				next = new Store(new DiskStorage(fi));
 				next.load();
-				oneline = args[1];
+				if (args.length > 1)
+				{
+					oneline = args[1];
+				}
+				else
+				{
+					oneline = fi.getName();
+				}
 
 				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master");
 				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
