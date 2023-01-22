@@ -47,7 +47,7 @@ public class ItemVariationsUpdate
 	private static String[][] replacements = new String[][]{
 		{"null", ""},
 		{"\\([^)]+\\)", ""},
-		{"[^a-zA-Z0-9 ]", ""},
+		{"[^a-zA-Z0-9 +]", ""},
 		{" [0-9]+|[0-9]+ ", ""},
 		{"uncharged | uncharged", ""},
 		{"new | new", ""},
