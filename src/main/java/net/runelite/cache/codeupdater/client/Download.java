@@ -26,6 +26,8 @@ package net.runelite.cache.codeupdater.client;
 
 import com.google.common.base.Strings;
 import java.io.File;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -127,9 +129,15 @@ public class Download
 						jsc.enqueueRoot();
 					}
 				}
+				catch (ConnectException | SocketTimeoutException e)
+				{
+					log.info("Error downloading cache {}", (Object) e);
+					Thread.sleep(5000);
+				}
 				catch (Exception e)
 				{
 					log.info("Error downloading cache", e);
+					Thread.sleep(5000);
 				}
 				finally
 				{
