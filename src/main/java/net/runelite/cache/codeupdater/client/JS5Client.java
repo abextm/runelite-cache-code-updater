@@ -243,11 +243,6 @@ public class JS5Client implements Closeable
 
 	protected void handleDownload(int indexID, int archiveID, byte[] compressed) throws IOException
 	{
-		if (seenChange)
-		{
-			log.info("Got {}/{} with {} bytes", indexID, archiveID, compressed.length);
-		}
-
 		if (indexID == 255)
 		{
 			Container con = Container.decompress(compressed, null);
@@ -276,7 +271,6 @@ public class JS5Client implements Closeable
 					idx.setCrc(crc);
 					idx.setRevision(rev);
 
-					log.info("Got {}/{} with {} bytes", indexID, archiveID, compressed.length);
 					enqueueDownload(255, id);
 				}
 			}
@@ -334,6 +328,11 @@ public class JS5Client implements Closeable
 			Index idx = store.findIndex(indexID);
 			Archive ar = idx.getArchive(archiveID);
 			store.getStorage().saveArchive(ar, compressed);
+		}
+
+		if (seenChange)
+		{
+			log.info("Got {}/{} with {} bytes", indexID, archiveID, compressed.length);
 		}
 	}
 
