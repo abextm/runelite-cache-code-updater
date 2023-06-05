@@ -69,7 +69,7 @@ public class Download
 	{
 		path.mkdirs();
 		Store store = new Store(new DiskStorage(path));
-		HostSupplier hs = new HostSupplier();
+		HostSupplier hs = new HostSupplier(false);
 		JS5Client jsc = new JS5Client(store, hs.getHost(false), rev, false);
 		jsc.enqueueRoot();
 		jsc.process();
@@ -79,7 +79,12 @@ public class Download
 	private static void doSingle(boolean test) throws Exception
 	{
 		Repository repo = Repo.OSRS_CACHE.get();
-		String branch = "master";
+		String beta = System.getenv("BETA_NAME");
+		if (beta != null && beta.isEmpty())
+		{
+			beta = null;
+		}
+		String branch = GitUtil.envOr("DOWNLOAD_BRANCH", beta != null ? "beta-" + beta : "master");
 		if (test)
 		{
 			branch = "test";
@@ -106,13 +111,18 @@ public class Download
 			String tag = "oops";
 			Queue<Integer> todo = new ArrayDeque<>();
 			todo.add(0xFF00FF);
-			HostSupplier hs = new HostSupplier();
+			HostSupplier hs = new HostSupplier(beta != null);
 			for (int attempt = 0; ; attempt++)
 			{
 				JS5Client jsc = null;
 				try
 				{
 					String host = hs.getHost(attempt % 16 == 0);
+					if (host == null)
+					{
+						Thread.sleep(5000);
+						continue;
+					}
 					jsc = new JS5Client(store, host, oldRev, false);
 					oldRev = jsc.getRev();
 					jsc.toDownload = todo;
@@ -166,7 +176,7 @@ public class Download
 
 			log.info("Writing commit");
 			store.save();
-			commit.setSubject("Cache version " + tag);
+			commit.setSubject("Cache version " + tag + (beta != null ? (" (" + beta + " beta)") : ""));
 			commit.finish(repo, branch);
 			commit.clear();
 

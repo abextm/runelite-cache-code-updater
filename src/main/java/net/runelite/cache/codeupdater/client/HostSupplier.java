@@ -34,12 +34,16 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Queue;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.codeupdater.git.GitUtil;
 
 @Slf4j
+@RequiredArgsConstructor
 public class HostSupplier
 {
+	private static final int FLAG_BETA = 1 << 16;
+
 	private static class World
 	{
 		String hostname;
@@ -60,6 +64,8 @@ public class HostSupplier
 		"oldschool7.runescape.COM",
 		"oldschool8.runescape.COM"
 	);
+
+	private final boolean useBeta;
 
 	private int randomWorld = 0;
 
@@ -128,6 +134,11 @@ public class HostSupplier
 					hosts = new ArrayDeque<>();
 					for (World world : worlds)
 					{
+						if (((world.flags & FLAG_BETA) != 0) != useBeta)
+						{
+							continue;
+						}
+
 						if (world.location != preferredLocationCode && hosts.size() > 32)
 						{
 							break;
@@ -146,6 +157,11 @@ public class HostSupplier
 			{
 				log.info("Unable to download world list", e);
 			}
+		}
+
+		if (useBeta)
+		{
+			return null;
 		}
 
 		return FALLBACK_WORLDS.get(randomWorld++ % FALLBACK_WORLDS.size());
