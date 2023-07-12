@@ -1,7 +1,7 @@
 plugins {
 	id "java"
-	id "com.github.johnrengelman.shadow" version "5.2.0"
-	id "io.freefair.lombok" version "5.0.0-rc6"
+	id "com.github.johnrengelman.shadow" version "8.1.1"
+	id "io.freefair.lombok" version "8.1.0"
 }
 
 repositories {
@@ -11,13 +11,13 @@ repositories {
 		}
 	}
 	maven {
-		url "http://repo.runelite.net"
+		url "https://repo.runelite.net"
 	}
 	mavenCentral()
 }
 
 lombok {
-	generateLombokConfig.enabled = false
+	disableConfig.set(true)
 }
 
 version = file("version").text.trim()
