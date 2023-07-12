@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
+import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptIDUpdate;
@@ -122,7 +123,8 @@ public class Main
 			ItemVariationsUpdate::update,
 			WidgetUpdate::update,
 			ScriptUpdate::update,
-			ScriptIDUpdate::update
+			ScriptIDUpdate::update,
+			QuestUpdate::update
 		);
 
 		GitUtil.pushBranch(rl, branchName);
