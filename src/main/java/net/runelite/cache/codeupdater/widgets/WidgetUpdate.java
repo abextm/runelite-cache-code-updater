@@ -24,29 +24,14 @@
  */
 package net.runelite.cache.codeupdater.widgets;
 
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.EnumConstantDeclaration;
-import com.github.javaparser.ast.body.EnumDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.expr.FieldAccessExpr;
-import com.github.javaparser.ast.expr.IntegerLiteralExpr;
-import com.github.javaparser.ast.expr.SimpleName;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.InterfaceManager;
-import net.runelite.cache.codeupdater.JavaFile;
 import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.mapper.Mapping;
@@ -64,48 +49,37 @@ public class WidgetUpdate
 		ifmNew.load();
 
 		Repository rl = Repo.RUNELITE.get();
+		String interfacesPath = "runelite-api/src/main/interfaces/interfaces.toml";
 
-		JavaFile widgetInfoCU = new JavaFile(rl, Main.branchName, "runelite-api/src/main/java/net/runelite/api/widgets/WidgetInfo.java");
-		JavaFile widgetIDCU = new JavaFile(rl, Main.branchName, "runelite-api/src/main/java/net/runelite/api/widgets/WidgetID.java");
+		INIParser.Document doc = new INIParser(GitUtil.readFileString(rl, Main.branchName, interfacesPath)).parse();
 		MutableCommit mc = new MutableCommit("Widget IDs");
 
-		Map<Integer, Map<Integer, IntegerLiteralExpr>> groupChildDecls = new HashMap<>();
-		Map<Integer, Set<IntegerLiteralExpr>> groupDecls = new HashMap<>();
-
-		EnumDeclaration widgetInfo = (EnumDeclaration) widgetInfoCU.getCompilationUnit().getTypes().get(0);
-		for (EnumConstantDeclaration decl : widgetInfo.getEntries())
+		for (var iface : doc.tables.entrySet())
 		{
-			IntegerLiteralExpr group = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(0));
-			int groupID = group.asInt();
-			IntegerLiteralExpr child = resolveFieldAccess(widgetIDCU.getCompilationUnit(), decl.getArguments().get(1));
-			groupChildDecls
-				.computeIfAbsent(groupID, v -> new HashMap<>())
-				.put(child.asInt(), child);
-			groupDecls
-				.computeIfAbsent(groupID, v -> new HashSet<>())
-				.add(group);
-		}
-
-		for (Map.Entry<Integer, Map<Integer, IntegerLiteralExpr>> groupEntry : groupChildDecls.entrySet())
-		{
-			int group = groupEntry.getKey();
+			int group = (int) ((INIParser.IntValueToken) iface.getValue().children.get("id")).intValue;
 
 			InterfaceDefinition[] newIG = ifmNew.getIntefaceGroup(group);
 			if (newIG == null)
 			{
-				mc.log("lost interface {}", group);
-				for (IntegerLiteralExpr gexpr : groupDecls.get(group))
+				mc.log("lost interface [{}] {}", iface.getKey(), group);
+				for (INIParser.Token value : iface.getValue().children.values())
 				{
-					gexpr.replace(new IntegerLiteralExpr(-1));
+					((INIParser.IntValueToken) value).setValue(-1);
 				}
 				continue;
 			}
 
 			InterfaceDefinition[] oldIG = ifmOld.getIntefaceGroup(group);
+			if (oldIG == null)
+			{
+				mc.log("nonexistent interface referenced [{}] {}", iface.getKey(), group);
+				continue;
+			}
+			InterfaceDefinition[] oldIGA = ifmOld.getIntefaceGroup(group);
 
 			if (!Arrays.equals(oldIG, newIG))
 			{
-				log.info("interface {} changed", group);
+				log.info("interface [{}] {} changed", iface.getKey(), group);
 			}
 
 			Mapping<InterfaceDefinition> mapping = Mapping.of(
@@ -113,31 +87,42 @@ public class WidgetUpdate
 				sorted(newIG),
 				new WidgetMapper());
 
-			for (Map.Entry<Integer, IntegerLiteralExpr> childEntry : groupEntry.getValue().entrySet())
+			for (var childEntry : iface.getValue().children.entrySet())
 			{
-				int child = childEntry.getKey();
+				if ("id".equals(childEntry.getKey()))
+				{
+					continue;
+				}
+
+				var tok = (INIParser.IntValueToken) childEntry.getValue();
+				int child = (int) tok.intValue;
 				try
 				{
-					InterfaceDefinition ifd = mapping.getSame().get(ifmOld.getInterface(group, child));
+					if (child >= oldIGA.length)
+					{
+						tok.setValue(-1);
+						mc.log("nonexistent widget [{}]{} {}.{}", iface.getKey(), childEntry.getKey(), group, child);
+						continue;
+					}
+					InterfaceDefinition ifd = mapping.getSame().get(oldIGA[child]);
 					if (ifd == null)
 					{
-						childEntry.getValue().replace(new IntegerLiteralExpr(-1));
-						mc.log("Lost widget {}.{}", group, child);
+						tok.setValue(-1);
+						mc.log("lost widget [{}]{} {}.{}", iface.getKey(), childEntry.getKey(), group, child);
 					}
 					else
 					{
-						childEntry.getValue().replace(new IntegerLiteralExpr(ifd.id & 0xFFFF));
+						tok.setValue(ifd.id & 0xFFFF);
 					}
 				}
 				catch (Exception e)
 				{
-					mc.log("Error mapping {}.{}:", group, child, e);
+					mc.log("Error mapping [{}]{} {}.{}: .", iface.getKey(), childEntry.getKey(), group, child, e);
 				}
 			}
 		}
 
-		widgetInfoCU.save(mc);
-		widgetIDCU.save(mc);
+		mc.writeFile(interfacesPath, doc.print());
 		mc.finish(rl, Main.branchName);
 	}
 
@@ -160,39 +145,5 @@ public class WidgetUpdate
 			out.add(id);
 			sorted(out, defs, id.getId());
 		}
-	}
-
-	private static IntegerLiteralExpr resolveFieldAccess(CompilationUnit widgetIDCU, Node n)
-	{
-		if (n instanceof FieldAccessExpr)
-		{
-			FieldAccessExpr axr = (FieldAccessExpr) n;
-			SimpleName targetName = axr.getName();
-			NodeList<? extends Node> members = widgetIDCU.getTypes();
-			for (String className : axr.getScope().toString().split("\\."))
-			{
-				ClassOrInterfaceDeclaration cd = members.stream()
-					.filter(v -> v instanceof ClassOrInterfaceDeclaration)
-					.map(v -> (ClassOrInterfaceDeclaration) v)
-					.filter(v -> v.getNameAsString().equals(className))
-					.findFirst()
-					.get();
-				members = cd.getMembers();
-			}
-			n = members.stream()
-				.flatMap(v ->
-				{
-					if (!(v instanceof FieldDeclaration))
-					{
-						return Stream.empty();
-					}
-					FieldDeclaration d = (FieldDeclaration) v;
-					return d.getVariables().stream();
-				})
-				.filter(v -> v.getName().equals(targetName))
-				.findFirst().get()
-				.getInitializer().get();
-		}
-		return (IntegerLiteralExpr) n;
 	}
 }
