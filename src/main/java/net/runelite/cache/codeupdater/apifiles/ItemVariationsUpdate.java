@@ -51,7 +51,6 @@ public class ItemVariationsUpdate
 		{" [0-9]+|[0-9]+ ", ""},
 		{"uncharged | uncharged", ""},
 		{"new | new", ""},
-		{" full", ""},
 		{"half a ", ""},
 		{"part ", ""},
 		{"open(ed)? ", ""},
