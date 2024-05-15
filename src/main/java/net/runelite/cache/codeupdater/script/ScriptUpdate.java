@@ -107,6 +107,12 @@ public class ScriptUpdate
 				}
 
 				byte[] oData = get(Main.previous, id);
+				if (oData == null)
+				{
+					mc.log("script {} does not exist", id);
+					return;
+				}
+
 				String ohash = BaseEncoding.base16().encode(Hashing.sha256().hashBytes(oData).asBytes());
 
 				if (!thash.equals(ohash))
