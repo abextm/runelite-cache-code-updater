@@ -27,18 +27,23 @@ package net.runelite.cache.codeupdater;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.cache.ConfigType;
+import net.runelite.cache.IndexType;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
+import net.runelite.cache.codeupdater.apifiles.VarbitUpdate;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptIDUpdate;
@@ -124,7 +129,8 @@ public class Main
 			WidgetUpdate::update,
 			ScriptUpdate::update,
 			ScriptIDUpdate::update,
-			QuestUpdate::update
+			QuestUpdate::update,
+			VarbitUpdate::update
 		);
 
 		GitUtil.pushBranch(rl, branchName);
@@ -173,5 +179,26 @@ public class Main
 				throw new RuntimeException(e);
 			}
 		}
+	}
+
+	public interface Loader<T>
+	{
+		T load(int id, byte[] b);
+	}
+
+	public static <T> IntFunction<T> configLoader(Store store, ConfigType configType, Loader<T> load) throws IOException
+	{
+		var ar = store.getIndex(IndexType.CONFIGS).getArchive(configType.getId());
+		var files = ar.getFiles(store.getStorage().loadArchive(ar));
+		return id ->
+		{
+			var fi = files.findFile(id);
+			if (fi == null)
+			{
+				return null;
+			}
+
+			return load.load(id, fi.getContents());
+		};
 	}
 }
