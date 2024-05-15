@@ -174,7 +174,7 @@ public class MutableCommit
 			indexBuilder.finish();
 
 			ObjectId tree = index.writeTree(inser);
-			if (tree.equals(parentTreeId))
+			if (tree.equals(parentTreeId) && log.length() == 0)
 			{
 				// Empty commit
 				return null;
