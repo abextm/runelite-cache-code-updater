@@ -235,10 +235,6 @@ public class SRNUpdate
 			{
 				try
 				{
-					if (!slowMode)
-					{
-						imCommit.log("{},", item.getKey());
-					}
 					BufferedImage img = ItemSpriteFactory.createSprite(
 						nim, nmm, nsm, ntm,
 						item.getValue().id, 0, 1, 0x302020, false);
