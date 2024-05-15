@@ -24,22 +24,17 @@
  */
 package net.runelite.cache.codeupdater.script;
 
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.IntegerLiteralExpr;
 import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.cache.codeupdater.JavaFile;
+import net.runelite.cache.codeupdater.JavaIDList;
 import net.runelite.cache.codeupdater.Main;
-import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.definitions.loaders.ScriptLoader;
-import org.eclipse.jgit.lib.Repository;
 
 @Slf4j
 public class ScriptIDUpdate
@@ -48,48 +43,26 @@ public class ScriptIDUpdate
 	{
 		ScriptLoader loader = new ScriptLoader();
 
-		Repository rl = Repo.RUNELITE.get();
-
-		JavaFile scriptIDCU = new JavaFile(rl, Main.branchName, "runelite-api/src/main/java/net/runelite/api/ScriptID.java");
-		MutableCommit mc = new MutableCommit("Script arguments");
-
-		for (BodyDeclaration bdecl : scriptIDCU.getCompilationUnit().getTypes().get(0).getMembers())
-		{
-			try
+		JavaIDList.update("Script arguments", "runelite-api/src/main/java/net/runelite/api/ScriptID.java", (mc, l) ->
 			{
-				if (!(bdecl instanceof FieldDeclaration))
-				{
-					continue;
-				}
-
-				FieldDeclaration fdecl = (FieldDeclaration) bdecl;
-				if (!fdecl.isStatic() || !fdecl.isFinal())
-				{
-					continue;
-				}
-
-				assert fdecl.getVariables().size() == 1;
-
-				VariableDeclarator vdecl = fdecl.getVariable(0);
-				IntegerLiteralExpr scriptIDLiteral = (IntegerLiteralExpr) vdecl.getInitializer().get();
-
-				int id = scriptIDLiteral.asInt();
+				int id = l.intValue();
 
 				if (id > 10000)
 				{
 					// RuneLite script
-					continue;
+					return;
 				}
 
 				byte[] newScript = ScriptUpdate.get(Main.next, id);
 				if (newScript == null)
 				{
-					mc.log("lost script {}", id);
-					scriptIDLiteral.replace(new IntegerLiteralExpr(-1));
-					continue;
+					mc.log("lost script {} {}", l.getName(), id);
+					l.delete();
+					return;
 				}
 				ScriptDefinition script = loader.load(id, newScript);
 
+				var fdecl = l.getFdecl();
 				AnnotationExpr allAnn = fdecl.getAnnotationByName("ScriptArguments").orElse(null);
 				NormalAnnotationExpr ann = null;
 				if (allAnn instanceof NormalAnnotationExpr)
@@ -114,15 +87,6 @@ public class ScriptIDUpdate
 				{
 					ann.addPair("string", new IntegerLiteralExpr(script.getStringStackCount()));
 				}
-			}
-			catch (Exception e)
-			{
-				mc.log("Error reading ScriptID.java:{} : {}", bdecl.getBegin().map(p -> p.toString()).orElse("Unknown"), e);
-				log.info("ScriptIDUpdate", e);
-			}
-		}
-
-		scriptIDCU.save(mc);
-		mc.finish(rl, Main.branchName);
+			});
 	}
 }
