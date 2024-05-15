@@ -58,7 +58,7 @@ public class WidgetUpdate
 		{
 			int group = (int) ((INIParser.IntValueToken) iface.getValue().children.get("id")).intValue;
 
-			InterfaceDefinition[] newIG = ifmNew.getIntefaceGroup(group);
+			InterfaceDefinition[] newIG = getInterface(ifmNew, group);
 			if (newIG == null)
 			{
 				mc.log("lost interface [{}] {}", iface.getKey(), group);
@@ -69,7 +69,7 @@ public class WidgetUpdate
 				continue;
 			}
 
-			InterfaceDefinition[] oldIG = ifmOld.getIntefaceGroup(group);
+			InterfaceDefinition[] oldIG = getInterface(ifmOld, group);
 			if (oldIG == null)
 			{
 				mc.log("nonexistent interface referenced [{}] {}", iface.getKey(), group);
@@ -124,6 +124,16 @@ public class WidgetUpdate
 
 		mc.writeFile(interfacesPath, doc.print());
 		mc.finish(rl, Main.branchName);
+	}
+
+	private static InterfaceDefinition[] getInterface(InterfaceManager ifm, int ifid)
+	{
+		var ifaces = ifm.getInterfaces();
+		if (ifaces.length <= ifid)
+		{
+			return null;
+		}
+		return ifaces[ifid];
 	}
 
 	private static List<InterfaceDefinition> sorted(InterfaceDefinition[] defs)
