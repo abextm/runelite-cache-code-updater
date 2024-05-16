@@ -43,6 +43,7 @@ import net.runelite.cache.IndexType;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
+import net.runelite.cache.codeupdater.apifiles.SpriteUpdate;
 import net.runelite.cache.codeupdater.apifiles.VarbitUpdate;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
@@ -130,7 +131,8 @@ public class Main
 			ScriptUpdate::update,
 			ScriptIDUpdate::update,
 			QuestUpdate::update,
-			VarbitUpdate::update
+			VarbitUpdate::update,
+			SpriteUpdate::update
 		);
 
 		GitUtil.pushBranch(rl, branchName);
