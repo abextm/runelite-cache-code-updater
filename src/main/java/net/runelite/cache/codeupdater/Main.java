@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.ConfigType;
 import net.runelite.cache.IndexType;
 import net.runelite.cache.codeupdater.apifiles.APIUpdate;
+import net.runelite.cache.codeupdater.apifiles.EnumUpdate;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
 import net.runelite.cache.codeupdater.apifiles.SpriteUpdate;
@@ -132,7 +133,8 @@ public class Main
 			ScriptIDUpdate::update,
 			QuestUpdate::update,
 			VarbitUpdate::update,
-			SpriteUpdate::update
+			SpriteUpdate::update,
+			EnumUpdate::update
 		);
 
 		GitUtil.pushBranch(rl, branchName);
