@@ -101,6 +101,10 @@ public class JS5Client implements Closeable
 
 			w.writeByte(15);
 			w.writeInt(rev);
+			w.writeInt(0);
+			w.writeInt(0);
+			w.writeInt(0);
+			w.writeInt(0);
 			w.flush();
 
 			int status = r.read();
