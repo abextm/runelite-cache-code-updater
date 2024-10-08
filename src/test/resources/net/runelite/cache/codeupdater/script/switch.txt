@@ -12,9 +12,11 @@ sm      jump                   LABEL64
   nf    jump                   LABEL60
 smnf LABEL42:
  m f    jump                   LABEL42
-sm   LABEL53:
+s    LABEL53:
+ m   LABEL53:                  ; comment
  m      jump                   LABEL53
-  nf LABEL50:
+  n  LABEL50:
+   f LABEL50:                  ; comment
    f    jump                   LABEL50
 sm   LABEL64:
  m      jump                   LABEL64

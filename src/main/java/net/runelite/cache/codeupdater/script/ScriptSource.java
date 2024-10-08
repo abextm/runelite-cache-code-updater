@@ -189,7 +189,7 @@ public class ScriptSource
 			if (opcode != null)
 			{
 				trimOp = opcode.trim();
-				extraWhitespace = opcode.length() - Math.max(22, trimOp.length());
+				extraWhitespace = opcode.length() - Math.max(trimOp.endsWith(":") ? 0 : 22, trimOp.length());
 			}
 			l.setOpcode(trimOp);
 			l.setOperand(m.group("operand"));
