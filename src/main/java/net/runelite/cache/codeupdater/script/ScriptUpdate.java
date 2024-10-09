@@ -218,8 +218,8 @@ public class ScriptUpdate
 				int osv = Integer.parseInt(os.getOperand());
 				int omv = Integer.parseInt(om.getOperand());
 				int nsv = Integer.parseInt(ns.getOperand());
-				int add = omv - osv;
-				val = "" + (nsv + add);
+				int add = nsv - osv;
+				val = "" + (omv + add);
 
 				if (add != 0)
 				{

@@ -82,6 +82,12 @@ public class ScriptUpdateTest
 		testScript("lvt.txt");
 	}
 
+	@Test
+	public void lvtNoChange()
+	{
+		testScript("lvt_nochange.txt");
+	}
+
 	private void testScript(String name)
 	{
 		Map<Character, StringBuilder> fis = new HashMap<>();
