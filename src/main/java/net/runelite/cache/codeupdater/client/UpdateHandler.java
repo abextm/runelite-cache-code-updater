@@ -41,11 +41,15 @@ public class UpdateHandler
 		return Integer.parseInt(commitMatcher.group(1));
 	}
 
-	public static String calculateTag(Repository repo, int rev) throws IOException
+	public static String calculateTag(Repository repo, int rev, String beta) throws IOException
 	{
 		String dateStr = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 		String revSlug = "-rev" + rev;
 		String tag = dateStr + revSlug;
+		if (beta != null)
+		{
+			tag = "beta-" + beta + "-" + tag;
+		}
 		for (int c = 1; repo.resolve(tag) != null; c++)
 		{
 			tag = dateStr + "-c" + c + revSlug;

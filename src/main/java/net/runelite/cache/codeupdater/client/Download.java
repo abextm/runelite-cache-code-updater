@@ -126,7 +126,7 @@ public class Download
 					jsc = new JS5Client(store, host, oldRev, false);
 					oldRev = jsc.getRev();
 					jsc.toDownload = todo;
-					tag = UpdateHandler.calculateTag(repo, jsc.getRev());
+					tag = UpdateHandler.calculateTag(repo, jsc.getRev(), beta);
 
 					for (; ; )
 					{
