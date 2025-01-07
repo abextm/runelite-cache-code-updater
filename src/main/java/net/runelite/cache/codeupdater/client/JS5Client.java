@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.cache.fs.Archive;
@@ -324,9 +325,12 @@ public class JS5Client implements Closeable
 					enqueueDownload(idx.getId(), ar.getArchiveId());
 				}
 
-				if (idx.getArchives().removeIf(ar -> !archiveIDs.contains(ar.getArchiveId())))
+				for (var remove : idx.getArchives().stream()
+					.filter(ar -> !archiveIDs.contains(ar.getArchiveId()))
+					.collect(Collectors.toList()))
 				{
 					seenChange = true;
+					idx.removeArchive(remove);
 				}
 			}
 		}
