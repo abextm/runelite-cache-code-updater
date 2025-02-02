@@ -47,12 +47,16 @@ import net.runelite.cache.codeupdater.apifiles.ParamUpdate;
 import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
 import net.runelite.cache.codeupdater.apifiles.SpriteUpdate;
 import net.runelite.cache.codeupdater.apifiles.VarbitUpdate;
+import net.runelite.cache.codeupdater.client.JS5Client;
+import net.runelite.cache.codeupdater.client.UpdateHandler;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptIDUpdate;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
 import net.runelite.cache.codeupdater.srn.SRNUpdate;
 import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
+import net.runelite.cache.fs.Archive;
+import net.runelite.cache.fs.Index;
 import net.runelite.cache.fs.Store;
 import net.runelite.cache.fs.jagex.DiskStorage;
 import org.eclipse.jgit.lib.Repository;
@@ -78,11 +82,29 @@ public class Main
 		try
 		{
 			String oneline;
-			if (args.length != 0)
+			if (args.length == 0)
 			{
+				String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
+				next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
+				oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
+
+				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
+				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+			}
+			else
+			{
+				var js5Builder = new JS5Client.Builder().fromEnv();
+
 				File fi = new File(args[0]);
+				boolean empty = false;
+				if (!fi.exists() && js5Builder.hostname() != null)
+				{
+					empty = true;
+					fi.mkdirs();
+				}
 				next = new Store(new DiskStorage(fi));
 				next.load();
+
 				if (args.length > 1)
 				{
 					oneline = args[1];
@@ -94,15 +116,24 @@ public class Main
 
 				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master");
 				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
-			}
-			else
-			{
-				String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
-				next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
-				oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
 
-				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
-				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+				if (js5Builder.hostname() != null)
+				{
+					if (empty)
+					{
+						copyStore(next, previous);
+					}
+
+					int rev = UpdateHandler.extractRevision(Repo.OSRS_CACHE.get(), prevCommitish);
+					try(JS5Client jsc = new JS5Client(js5Builder
+						.rev(rev)
+						.store(next)))
+					{
+						jsc.enqueueRoot();
+						jsc.process();
+					}
+					next.save();
+				}
 			}
 
 			versionText = oneline.replace("Cache version ", "");
@@ -206,5 +237,40 @@ public class Main
 
 			return load.load(id, fi.getContents());
 		};
+	}
+
+	private static void copyStore(Store dst, Store src) throws IOException
+	{
+		for (Index srcIdx : src.getIndexes())
+		{
+			Index dstIdx = dst.addIndex(srcIdx.getId());
+			dstIdx.setCompression(srcIdx.getCompression());
+			dstIdx.setCrc(srcIdx.getCrc());
+			dstIdx.setRevision(srcIdx.getRevision());
+			dstIdx.setNamed(srcIdx.isNamed());
+			dstIdx.setProtocol(srcIdx.getProtocol());
+			for (Archive srcArc : srcIdx.getArchives())
+			{
+				Archive dstArc = dstIdx.addArchive(srcArc.getArchiveId());
+
+				dstArc.setCompression(srcArc.getCompression());
+				dstArc.setCrc(srcArc.getCrc());
+				dstArc.setFileData(srcArc.getFileData());
+				dstArc.setNameHash(srcArc.getNameHash());
+				dstArc.setRevision(srcArc.getRevision());
+
+				byte[] data = src.getStorage().loadArchive(srcArc);
+				if (data == null)
+				{
+					System.out.println("" + srcIdx.getId() + " " + srcArc.getArchiveId());
+				}
+				else
+				{
+					dst.getStorage().saveArchive(dstArc, data);
+				}
+			}
+		}
+
+		dst.save();
 	}
 }

@@ -58,19 +58,21 @@ public class Download
 				doSingle(false);
 				break;
 			case "JAGEX":
-				doJagex(new File(args[0]), Integer.parseInt(args[1]));
+				doJagex(new File(args[0]));
 				break;
 			default:
 				throw new IllegalArgumentException(mode + " is not a valid DOWNLOAD_MODE");
 		}
 	}
 
-	private static void doJagex(File path, int rev) throws Exception
+	private static void doJagex(File path) throws Exception
 	{
 		path.mkdirs();
 		Store store = new Store(new DiskStorage(path));
 		HostSupplier hs = new HostSupplier(false);
-		JS5Client jsc = new JS5Client(store, hs.getHost(false), rev, false);
+		JS5Client jsc = new JS5Client(new JS5Client.Builder()
+			.store(store)
+			.fromEnv());
 		jsc.enqueueRoot();
 		jsc.process();
 		store.save();
@@ -123,7 +125,11 @@ public class Download
 						Thread.sleep(5000);
 						continue;
 					}
-					jsc = new JS5Client(store, host, oldRev, false);
+					jsc = new JS5Client(new JS5Client.Builder()
+						.store(store)
+						.hostname(host)
+						.rev(oldRev)
+						.fromEnv());
 					oldRev = jsc.getRev();
 					jsc.toDownload = todo;
 					tag = UpdateHandler.calculateTag(repo, jsc.getRev(), beta);

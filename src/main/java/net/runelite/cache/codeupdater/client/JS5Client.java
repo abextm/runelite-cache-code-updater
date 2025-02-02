@@ -24,6 +24,7 @@
  */
 package net.runelite.cache.codeupdater.client;
 
+import com.google.common.base.Strings;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,8 +32,13 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Queue;
@@ -40,6 +46,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
+import lombok.experimental.Accessors;
 import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.Container;
 import net.runelite.cache.fs.Index;
@@ -54,6 +62,8 @@ public class JS5Client implements Closeable
 {
 	public static final int SKIP = -1;
 	public static final int EXIT = -2;
+
+	public static final int DEFAULT_PORT = 43594;
 
 	private static final int MAX_REV_BUMPS = 10;
 	private static final int MAX_OUT = 200;
@@ -77,11 +87,100 @@ public class JS5Client implements Closeable
 	@Getter
 	private final int rev;
 
-	public JS5Client(Store store, String hostname, int rev, boolean wasBumped) throws IOException
+	@Accessors(fluent = true, chain = true)
+	@Setter
+	@Getter
+	public static class Builder
 	{
-		this.store = store;
-		this.hostname = hostname;
+		Store store;
+
+		String hostname;
+		int port = DEFAULT_PORT;
+
+		int rev;
+		boolean wasBumped;
+
+		public Builder fromEnv() throws IOException
+		{
+			String hostname = System.getenv("JS5_HOST");
+			if (!Strings.isNullOrEmpty(hostname))
+			{
+				this.hostname = hostname;
+			}
+
+			String port = System.getenv("JS5_PORT");
+			if (!Strings.isNullOrEmpty(port))
+			{
+				this.port = Integer.parseInt(port);
+			}
+
+			String jav = System.getenv("JS5_JAVCONFIG");
+			if (!Strings.isNullOrEmpty(jav))
+			{
+				fillFromJavConfig(jav);
+			}
+
+			return this;
+		}
+
+		@SneakyThrows
+		public Builder fillFromJavConfig(String javConfig) throws IOException
+		{
+			var client = HttpClient.newHttpClient();
+			var res = client.send(HttpRequest.newBuilder()
+				.uri(URI.create(javConfig))
+				.build(), HttpResponse.BodyHandlers.ofString());
+
+			var lines = res.body().split("\r?\n");
+			int socketType = Integer.parseInt(Arrays.stream(lines)
+				.filter(l -> l.startsWith("param=15="))
+				.findFirst()
+				.orElseThrow()
+				.split("=")
+				[2]);
+
+			if (socketType == 0)
+			{
+				port = DEFAULT_PORT;
+			}
+			else
+			{
+				port = 40000 + Integer.parseInt(Arrays.stream(lines)
+					.filter(l -> l.startsWith("param=12="))
+					.findFirst()
+					.orElseThrow()
+					.split("=")
+					[2]);
+			}
+
+			hostname = URI.create(Arrays.stream(lines)
+				.filter(l -> l.startsWith("codebase="))
+				.findFirst()
+				.orElseThrow()
+				.split("=")
+				[1]).getHost();
+
+
+			rev = Integer.parseInt(Arrays.stream(lines)
+				.filter(l -> l.startsWith("param=25="))
+				.findFirst()
+				.orElseThrow()
+				.split("=")
+				[2]
+				.split("\\.")
+				[0]);
+
+			return this;
+		}
+	}
+
+	public JS5Client(Builder b) throws IOException
+	{
+		this.store = b.store;
+		this.hostname = b.hostname;
 		this.log = LoggerFactory.getLogger(toString());
+
+		int rev = b.rev;
 
 		Socket socket;
 		DataOutputStream w;
@@ -95,7 +194,7 @@ public class JS5Client implements Closeable
 			socket.setSendBufferSize(0xFFFF);
 			socket.setTcpNoDelay(false);
 
-			socket.connect(new InetSocketAddress(hostname, 43594), 2500);
+			socket.connect(new InetSocketAddress(hostname, b.port), 2500);
 
 			w = new DataOutputStream(socket.getOutputStream());
 			r = new DataInputStream(socket.getInputStream());
@@ -114,7 +213,7 @@ public class JS5Client implements Closeable
 				break;
 			}
 
-			if (status == 6 && i < MAX_REV_BUMPS && !wasBumped)
+			if (status == 6 && i < MAX_REV_BUMPS && !b.wasBumped)
 			{
 				rev++;
 				log.info("Got rev mismatch, bumping to {}", rev);
