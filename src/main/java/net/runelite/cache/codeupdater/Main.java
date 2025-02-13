@@ -249,6 +249,7 @@ public class Main
 			dstIdx.setRevision(srcIdx.getRevision());
 			dstIdx.setNamed(srcIdx.isNamed());
 			dstIdx.setProtocol(srcIdx.getProtocol());
+			dstIdx.setSized(srcIdx.isSized());
 			for (Archive srcArc : srcIdx.getArchives())
 			{
 				Archive dstArc = dstIdx.addArchive(srcArc.getArchiveId());
@@ -258,6 +259,8 @@ public class Main
 				dstArc.setFileData(srcArc.getFileData());
 				dstArc.setNameHash(srcArc.getNameHash());
 				dstArc.setRevision(srcArc.getRevision());
+				dstArc.setCompressedSize(dstArc.getCompressedSize());
+				dstArc.setDecompressedSize(srcArc.getDecompressedSize());
 
 				byte[] data = src.getStorage().loadArchive(srcArc);
 				if (data == null)

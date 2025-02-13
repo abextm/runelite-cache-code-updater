@@ -389,6 +389,7 @@ public class JS5Client implements Closeable
 				idxd.load(con.data);
 				idx.setProtocol(idxd.getProtocol());
 				idx.setNamed(idxd.isNamed());
+				idx.setSized(idxd.isSized());
 				assert con.crc == idx.getCrc();
 				assert con.revision == idx.getRevision();
 
@@ -418,6 +419,8 @@ public class JS5Client implements Closeable
 					ar.setRevision(ard.getRevision());
 					ar.setCrc(ard.getCrc());
 					ar.setNameHash(ard.getNameHash());
+					ar.setCompressedSize(ard.getCompressedSize());
+					ar.setDecompressedSize(ard.getDecompressedSize());
 
 					ar.setFileData(ard.getFiles());
 
