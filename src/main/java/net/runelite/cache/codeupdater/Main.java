@@ -40,13 +40,12 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.ConfigType;
 import net.runelite.cache.IndexType;
-import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.EnumUpdate;
+import net.runelite.cache.codeupdater.apifiles.GameValWriter;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
 import net.runelite.cache.codeupdater.apifiles.ParamUpdate;
 import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
 import net.runelite.cache.codeupdater.apifiles.SpriteUpdate;
-import net.runelite.cache.codeupdater.apifiles.VarbitUpdate;
 import net.runelite.cache.codeupdater.client.JS5Client;
 import net.runelite.cache.codeupdater.client.UpdateHandler;
 import net.runelite.cache.codeupdater.git.GitUtil;
@@ -141,7 +140,7 @@ public class Main
 
 			updateRunelite();
 
-			updateSRN();
+			//updateSRN();
 		}
 		finally
 		{
@@ -158,13 +157,12 @@ public class Main
 		Repo.RUNELITE.branch(branchName);
 
 		execAllAndWait(
-			APIUpdate::update,
+			GameValWriter::update,
 			ItemVariationsUpdate::update,
 			WidgetUpdate::update,
 			ScriptUpdate::update,
 			ScriptIDUpdate::update,
 			QuestUpdate::update,
-			VarbitUpdate::update,
 			SpriteUpdate::update,
 			EnumUpdate::update,
 			ParamUpdate::update
