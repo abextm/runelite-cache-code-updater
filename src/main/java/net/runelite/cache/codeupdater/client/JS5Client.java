@@ -358,7 +358,7 @@ public class JS5Client implements Closeable
 				{
 					int crc = bb.getInt();
 					int rev = bb.getInt();
-					if (id == 16)
+					if (crc == 0 && rev == 0)
 					{
 						continue;
 					}
