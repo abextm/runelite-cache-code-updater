@@ -56,6 +56,14 @@ public class GameValWriter
 	{
 		MutableCommit mc = new MutableCommit("GameVals");
 
+		if (Main.next.getIndex(IndexType.GAMEVALS) == null)
+		{
+			mc = new MutableCommit("DO NOT MERGE GameVals missing");
+			mc.log("broken cache");
+			mc.finish(Repo.RUNELITE.get(), Main.branchName);
+			return;
+		}
+
 		{
 			var im = new ItemManager(Main.next);
 			im.load();
