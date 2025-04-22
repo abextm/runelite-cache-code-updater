@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.ConfigType;
 import net.runelite.cache.IndexType;
+import net.runelite.cache.codeupdater.apifiles.APIUpdate;
 import net.runelite.cache.codeupdater.apifiles.EnumUpdate;
 import net.runelite.cache.codeupdater.apifiles.GameValWriter;
 import net.runelite.cache.codeupdater.apifiles.ItemVariationsUpdate;
@@ -157,6 +158,7 @@ public class Main
 		Repo.RUNELITE.branch(branchName);
 
 		execAllAndWait(
+			APIUpdate::update,
 			GameValWriter::update,
 			ItemVariationsUpdate::update,
 			WidgetUpdate::update,

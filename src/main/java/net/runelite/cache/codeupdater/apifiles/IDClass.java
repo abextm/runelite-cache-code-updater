@@ -47,6 +47,9 @@ public class IDClass
 	private final String pkg;
 
 	@Setter
+	private String header = "@SuppressWarnings(\"unused\")\n";
+
+	@Setter
 	private boolean isInterface;
 
 	@Setter
@@ -153,7 +156,7 @@ public class IDClass
 			c.print(pkg);
 			c.print(";\n");
 			c.print("\n");
-			c.print("@SuppressWarnings(\"unused\")\n");
+			c.print(header);
 			write(c, "");
 		}
 	}
