@@ -141,7 +141,7 @@ public class Main
 
 			updateRunelite();
 
-			//updateSRN();
+			updateSRN();
 		}
 		finally
 		{
