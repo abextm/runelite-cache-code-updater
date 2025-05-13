@@ -1,24 +1,14 @@
 on:
   workflow_dispatch:
     inputs:
-      NO_PUSH:
-        description: "Don't push"
-        required: false
-      BRANCH_POINT_RUNELITE:
-        description: "RuneLite branch point"
-        required: false
-      SLOW_SRN:
+      git_push_allowed:
+        description: "push changes"
+        type: boolean
+        default: true
+      srn_slow:
         description: "Recalculate all srn icons"
-        required: false
-      BRANCH_NAME:
-        description: "Branch name"
-        required: false
-      CACHE_PREV:
-        description: "Previous cache version"
-        required: false
-      CACHE_NEXT:
-        description: "Next cache version"
-        required: false
+        type: boolean
+        default: false
 
 jobs:
   execute:
@@ -38,12 +28,8 @@ jobs:
     - name: "Run"
       env:
         KEYS: ${{ secrets.KEYS }}
-        NO_PUSH: ${{ github.event.inputs.NO_PUSH }}
-        BRANCH_POINT_RUNELITE: ${{ github.event.inputs.BRANCH_POINT_RUNELITE }}
-        SLOW_SRN: ${{ github.event.inputs.SLOW_SRN }}
-        BRANCH_NAME: ${{ github.event.inputs.BRANCH_NAME }}
-        CACHE_PREV: ${{ github.event.inputs.CACHE_PREV }}
-        CACHE_NEXT: ${{ github.event.inputs.CACHE_NEXT }}
+        GIT_PUSH_ALLOWED: ${{ github.event.inputs.git_push_allowed }}
+        SRN_SLOW: ${{ github.events.inputs.srn_slow }}
       run: |
         set -e -x
         curl -sqL https://api.github.com/repos/abextm/runelite-cache-code-updater/releases/latest \
@@ -51,10 +37,13 @@ jobs:
           | wget -qi- -O rlccau.jar
         echo "$KEYS" | base64 -d | tar -xz -C ~/
         eval $(ssh-agent)
-        export REMOTE_RUNELITE_ORIGIN=git@runelite:abextm/runelite.git
-        export REMOTE_SRN_ORIGIN=git@static.runelite.net:abextm/static.runelite.net.git
+        cat << EOF >> ci.properties
+        
+        git.push.allowed=$GIT_PUSH_ALLOWED
+        srn.slow=$SRN_SLOW
+        EOF
         export GIT_SSH=ssh
-        java -cp rlccau.jar net.runelite.cache.codeupdater.Main
+        java -Drlccau.config=ci.properties -cp rlccau.jar net.runelite.cache.codeupdater.Main
     - name: "GC"
       run: |
         git --git-dir runelite/.git repack -ad

@@ -24,6 +24,7 @@
  */
 package net.runelite.cache.codeupdater.client;
 
+import com.google.common.base.Strings;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,6 +37,11 @@ public class UpdateHandler
 	public static int extractRevision(Repository repo, String commit) throws IOException
 	{
 		String oldCommitMessage = GitUtil.resolve(repo, commit).getShortMessage();
+		return extractRevision(oldCommitMessage);
+	}
+
+	public static int extractRevision(String oldCommitMessage)
+	{
 		Matcher commitMatcher = Pattern.compile("rev([0-9]+)").matcher(oldCommitMessage);
 		commitMatcher.find();
 		return Integer.parseInt(commitMatcher.group(1));
@@ -46,7 +52,7 @@ public class UpdateHandler
 		String dateStr = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 		String revSlug = "-rev" + rev;
 		String tag = dateStr + revSlug;
-		if (beta != null)
+		if (!Strings.isNullOrEmpty(beta))
 		{
 			tag = "beta-" + beta + "-" + tag;
 		}

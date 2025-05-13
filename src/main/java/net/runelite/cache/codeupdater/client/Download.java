@@ -33,10 +33,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.cache.codeupdater.Settings;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
+import net.runelite.cache.fs.Storage;
 import net.runelite.cache.fs.Store;
+import net.runelite.cache.fs.flat.FlatStorage;
 import net.runelite.cache.fs.jagex.DiskStorage;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
@@ -48,89 +51,96 @@ public class Download
 {
 	public static void main(String[] args) throws Exception
 	{
-		String mode = GitUtil.envOr("DOWNLOAD_MODE", "TEST");
-		switch (mode)
-		{
-			case "TEST":
-				doSingle(true);
-				break;
-			case "RUN":
-				doSingle(false);
-				break;
-			case "JAGEX":
-				doJagex(new File(args[0]));
-				break;
-			default:
-				throw new IllegalArgumentException(mode + " is not a valid DOWNLOAD_MODE");
-		}
-	}
-
-	private static void doJagex(File path) throws Exception
-	{
-		path.mkdirs();
-		Store store = new Store(new DiskStorage(path));
-		HostSupplier hs = new HostSupplier(false);
-		JS5Client jsc = new JS5Client(new JS5Client.Builder()
-			.store(store)
-			.fromEnv());
-		jsc.enqueueRoot();
-		jsc.process();
-		store.save();
-	}
-
-	private static void doSingle(boolean test) throws Exception
-	{
 		Repository repo = Repo.OSRS_CACHE.get();
-		String beta = System.getenv("BETA_NAME");
-		if (beta != null && beta.isEmpty())
-		{
-			beta = null;
-		}
-		String branch = GitUtil.envOr("DOWNLOAD_BRANCH", beta != null ? "beta-" + beta : "master");
-		if (test)
-		{
-			branch = "test";
-		}
+		String beta = Settings.get("dl.beta");
 
-		try (Git git = new Git(repo))
-		{
-			String branchPoint = test ? GitUtil.envOr("TEST_POINT", "upstream/master^") : "upstream/master";
-			git.branchCreate()
-				.setForce(true)
-				.setName(branch)
-				.setStartPoint(branchPoint)
-				.call();
-		}
+		String branch = Settings.get("dl.branch");
 
-		int oldRev = UpdateHandler.extractRevision(repo, branch);
+		var builder = new JS5Client.Builder()
+			.fromConfig();
+
+		if (!branch.isEmpty())
+		{
+			Repo.OSRS_CACHE.branch(branch);
+
+			if (builder.rev() == 0)
+			{
+				builder.rev(UpdateHandler.extractRevision(repo, branch));
+			}
+		}
 
 		log.info("Loading store");
 		MutableCommit commit = new MutableCommit("Update cache", false);
-		Store store = GitUtil.openStore(repo, branch, commit);
+		Store store;
+		if (!branch.isEmpty())
+		{
+			store = GitUtil.openStore(repo, branch, commit);
+		}
+		else
+		{
+			String dir = Settings.get("dl.dir");
+			if (dir.isEmpty())
+			{
+				throw new IllegalArgumentException("must set dl.dir or dl.branch");
+			}
+
+			File fdir = new File(dir);
+			Storage s;
+			if (new File(fdir, "main_file_cache.dat2").exists())
+			{
+				s = new DiskStorage(fdir);
+			}
+			else if (new File(fdir, "0.flatcache").exists())
+			{
+				s = new FlatStorage(fdir);
+			}
+			else
+			{
+				fdir.mkdirs();
+				String dirmode = Settings.get("dl.dirmode");
+				if ("flat".equals(dirmode))
+				{
+					s = new FlatStorage(fdir);
+				}
+				else
+				{
+					s = new DiskStorage(fdir);
+				}
+			}
+
+			store = new Store(s);
+			store.load();
+		}
+
+		builder.store(store);
+
+		boolean hostSet = builder.hostname() != null;
 
 		for (; ; )
 		{
 			String tag = "oops";
 			Queue<Integer> todo = new ArrayDeque<>();
 			todo.add(0xFF00FF);
-			HostSupplier hs = new HostSupplier(beta != null);
+			HostSupplier hs = new HostSupplier(!beta.isEmpty());
 			for (int attempt = 0; ; attempt++)
 			{
 				JS5Client jsc = null;
 				try
 				{
-					String host = hs.getHost(attempt % 16 == 0);
-					if (host == null)
+					if (!hostSet)
 					{
-						Thread.sleep(5000);
-						continue;
+						String host = hs.getHost(attempt % 16 == 0);
+						if (host == null)
+						{
+							Thread.sleep(5000);
+							continue;
+						}
+
+						builder.hostname(host);
 					}
-					jsc = new JS5Client(new JS5Client.Builder()
-						.store(store)
-						.hostname(host)
-						.rev(oldRev)
-						.fromEnv());
-					oldRev = jsc.getRev();
+
+					jsc = new JS5Client(builder);
+					builder.rev(jsc.getRev());
 					jsc.toDownload = todo;
 					tag = UpdateHandler.calculateTag(repo, jsc.getRev(), beta);
 
@@ -180,58 +190,54 @@ public class Download
 				}
 			}
 
-			log.info("Writing commit");
+			log.info("Writing");
+
 			store.save();
-			commit.setSubject("Cache version " + tag + (beta != null ? (" (" + beta + " beta)") : ""));
-			commit.finish(repo, branch);
-			commit.clear();
 
-			if (Strings.isNullOrEmpty(System.getenv("NO_NETWORK")) &&
-				Strings.isNullOrEmpty(System.getenv("NO_PUSH")))
+			if (!branch.isEmpty())
 			{
-				log.info("Pushing");
+				commit.setSubject("Cache version " + tag + (!beta.isEmpty() ? (" (" + beta + " beta)") : ""));
+				commit.finish(repo, branch);
+				commit.clear();
 
-				try (Git git = new Git(repo))
+				if (Repo.OSRS_CACHE.isHasOrigin() && Settings.getBool("git.push.allowed"))
 				{
-					List<RefSpec> specs = new ArrayList<>();
-					specs.add(new RefSpec(branch + ":" + branch));
+					log.info("Pushing");
 
-					if (!test)
+					try (Git git = new Git(repo))
 					{
+						List<RefSpec> specs = new ArrayList<>();
+						specs.add(new RefSpec(branch + ":" + branch));
+
 						specs.add(new RefSpec(git.tag()
 							.setName(tag)
 							.setObjectId(GitUtil.resolve(repo, branch))
 							.call()
 							.getName()));
+
+						git.push()
+							.setRemote("origin")
+							.setRefSpecs(specs)
+							.setThin(true)
+							.setProgressMonitor(new TextProgressMonitor())
+							.call();
 					}
 
-					git.push()
-						.setRemote("origin")
-						.setRefSpecs(specs)
-						.setThin(true)
-						.setProgressMonitor(new TextProgressMonitor())
-						.setForce(test)
-						.call();
-				}
-			}
-			log.info("Done");
-
-			if (test)
-			{
-				log.info("Diff:");
-				GitUtil.diff(repo, "upstream/master", branch);
-				break;
-			}
-			else
-			{
-				String exec = System.getenv("AFTER_PUSH");
-				if (!Strings.isNullOrEmpty(exec))
-				{
-					Runtime.getRuntime().exec(exec, new String[]{"IDENT=" + tag});
+					String exec = Settings.get("dl.after_push_script");
+					if (!Strings.isNullOrEmpty(exec))
+					{
+						Runtime.getRuntime().exec(exec, new String[]{"IDENT=" + tag});
+					}
 				}
 			}
 
 			Runtime.getRuntime().gc();
+
+			if (branch.isEmpty())
+			{
+				// one shot download
+				break;
+			}
 		}
 	}
 }

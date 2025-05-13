@@ -32,7 +32,6 @@ import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.cache.codeupdater.JavaIDList;
 import net.runelite.cache.codeupdater.Main;
-import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.definitions.loaders.ScriptLoader;
 

@@ -48,6 +48,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.experimental.Accessors;
+import net.runelite.cache.codeupdater.Settings;
 import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.Container;
 import net.runelite.cache.fs.Index;
@@ -92,32 +93,38 @@ public class JS5Client implements Closeable
 	@Getter
 	public static class Builder
 	{
-		Store store;
+		private Store store;
 
-		String hostname;
-		int port = DEFAULT_PORT;
+		private String hostname;
+		private int port = DEFAULT_PORT;
 
-		int rev;
-		boolean wasBumped;
+		private int rev;
+		private boolean wasBumped;
 
-		public Builder fromEnv() throws IOException
+		public Builder fromConfig() throws IOException
 		{
-			String hostname = System.getenv("JS5_HOST");
+			String hostname = Settings.get("js5.host");
 			if (!Strings.isNullOrEmpty(hostname))
 			{
 				this.hostname = hostname;
 			}
 
-			String port = System.getenv("JS5_PORT");
+			String port = Settings.get("js5.port");
 			if (!Strings.isNullOrEmpty(port))
 			{
 				this.port = Integer.parseInt(port);
 			}
 
-			String jav = System.getenv("JS5_JAVCONFIG");
+			String jav = Settings.get("js5.javconfig");
 			if (!Strings.isNullOrEmpty(jav))
 			{
 				fillFromJavConfig(jav);
+			}
+
+			String rev = Settings.get("js5.rev");
+			if (!Strings.isNullOrEmpty(rev))
+			{
+				this.rev = Integer.parseInt(rev);
 			}
 
 			return this;

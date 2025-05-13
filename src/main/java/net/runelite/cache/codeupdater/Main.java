@@ -49,7 +49,6 @@ import net.runelite.cache.codeupdater.apifiles.QuestUpdate;
 import net.runelite.cache.codeupdater.apifiles.SpriteUpdate;
 import net.runelite.cache.codeupdater.client.JS5Client;
 import net.runelite.cache.codeupdater.client.UpdateHandler;
-import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.script.ScriptIDUpdate;
 import net.runelite.cache.codeupdater.script.ScriptUpdate;
@@ -58,7 +57,6 @@ import net.runelite.cache.codeupdater.widgets.WidgetUpdate;
 import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.Index;
 import net.runelite.cache.fs.Store;
-import net.runelite.cache.fs.jagex.DiskStorage;
 import org.eclipse.jgit.lib.Repository;
 
 @Slf4j
@@ -81,63 +79,60 @@ public class Main
 	{
 		try
 		{
-			String oneline;
-			if (args.length == 0)
-			{
-				String nextCommitish = GitUtil.envOr("CACHE_NEXT", "upstream/master");
-				next = GitUtil.openStore(Repo.OSRS_CACHE.get(), nextCommitish);
-				oneline = GitUtil.resolve(Repo.OSRS_CACHE.get(), nextCommitish).getShortMessage();
+			var js5Builder = new JS5Client.Builder().fromConfig();
 
-				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master^");
-				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
+			boolean empty = false;
+			if (js5Builder.hostname() != null)
+			{
+				String next = Settings.get("cache.next");
+				var parts = next.split("=");
+				if (!"dir".equals(parts[0]))
+				{
+					throw new IllegalArgumentException("cache.next must be dir= in js5 mode");
+				}
+
+				var dir = new File(parts[1]);
+				empty = !dir.exists();
+				if (empty)
+				{
+					dir.mkdirs();
+				}
 			}
-			else
+
+			next = Settings.openCache("cache.next");
+			String oneline = Settings.getCacheName("cache.next");
+
+			previous = Settings.openCache("cache.previous");
+
+			if (js5Builder.hostname() != null)
 			{
-				var js5Builder = new JS5Client.Builder().fromEnv();
-
-				File fi = new File(args[0]);
-				boolean empty = false;
-				if (!fi.exists() && js5Builder.hostname() != null)
+				if (empty)
 				{
-					empty = true;
-					fi.mkdirs();
-				}
-				next = new Store(new DiskStorage(fi));
-				next.load();
-
-				if (args.length > 1)
-				{
-					oneline = args[1];
-				}
-				else
-				{
-					oneline = fi.getName();
-				}
-
-				String prevCommitish = GitUtil.envOr("CACHE_PREVIOUS", "upstream/master");
-				previous = GitUtil.openStore(Repo.OSRS_CACHE.get(), prevCommitish);
-
-				if (js5Builder.hostname() != null)
-				{
-					if (empty)
+					try (var js5Previous = Settings.openCache("js5.previous"))
 					{
-						copyStore(next, previous);
+						copyStore(next, js5Previous);
 					}
-
-					int rev = UpdateHandler.extractRevision(Repo.OSRS_CACHE.get(), prevCommitish);
-					try(JS5Client jsc = new JS5Client(js5Builder
-						.rev(rev)
-						.store(next)))
-					{
-						jsc.enqueueRoot();
-						jsc.process();
-					}
-					next.save();
 				}
+
+				if (js5Builder.rev() == 0)
+				{
+					js5Builder.rev(UpdateHandler.extractRevision(Settings.getCacheName("js5.previous")));
+				}
+				if (js5Builder.rev() == 0)
+				{
+					js5Builder.rev(UpdateHandler.extractRevision(Settings.getCacheName("cache.previous")));
+				}
+
+				try (JS5Client jsc = new JS5Client(js5Builder.store(next)))
+				{
+					jsc.enqueueRoot();
+					jsc.process();
+				}
+				next.save();
 			}
 
 			versionText = oneline.replace("Cache version ", "");
-			branchName = GitUtil.envOr("BRANCH_NAME", "cache-code-" + versionText);
+			branchName = Settings.get("runelite.branch").replace("%", versionText);
 
 			updateRunelite();
 
@@ -170,7 +165,7 @@ public class Main
 			ParamUpdate::update
 		);
 
-		GitUtil.pushBranch(rl, branchName);
+		Repo.RUNELITE.pushBranch(branchName);
 	}
 
 	private static void updateSRN() throws Exception
@@ -181,7 +176,7 @@ public class Main
 
 		SRNUpdate.update();
 
-		GitUtil.pushBranch(srn, branchName);
+		Repo.SRN.pushBranch(branchName);
 	}
 
 	public interface RunAndThrow

@@ -24,12 +24,12 @@
  */
 package net.runelite.cache.codeupdater.git;
 
-import com.google.common.base.Strings;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.cache.codeupdater.Settings;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Config;
@@ -37,23 +37,22 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.storage.file.FileBasedConfig;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.util.FS;
 import org.eclipse.jgit.util.SystemReader;
 
 @Slf4j
-@RequiredArgsConstructor
 public enum Repo
 {
-	OSRS_CACHE("https://github.com/Abextm/osrs-cache.git", "git@github.com:Abextm/osrs-cache.git", "master"),
-	RUNELITE("https://github.com/runelite/runelite.git", "git@github.com:Abextm/runelite.git", "master"),
-	SRN("https://github.com/runelite/static.runelite.net.git", "git@github.com:Abextm/static.runelite.net.git", "gh-pages");
-
-	private final String upstream;
-	private final String push;
-	private final String masterBranch;
+	OSRS_CACHE,
+	RUNELITE,
+	SRN;
 
 	private Repository repo;
+
+	@Getter
+	private boolean hasOrigin;
 
 	static
 	{
@@ -131,18 +130,17 @@ public enum Repo
 				.setWorkTree(localCache)
 				.build();
 
-			if (Strings.isNullOrEmpty(System.getenv("NO_NETWORK")))
+			try (Git git = new Git(repo))
 			{
-				try (Git git = new Git(repo))
+				if (git.remoteList().call().isEmpty())
 				{
-					if (git.remoteList().call().size() <= 0)
-					{
-						repo.create();
-					}
+					repo.create();
+				}
 
-					setRemote(git, name, "upstream", upstream);
-					setRemote(git, name, "origin", push);
+				hasOrigin = setRemote(git, name, "origin");
 
+				if (setRemote(git, name, "upstream") && Settings.getBool("git.fetch.allowed"))
+				{
 					log.info("Updating {}", name);
 					git.fetch()
 						.setProgressMonitor(new TextProgressMonitor())
@@ -160,12 +158,12 @@ public enum Repo
 		}
 	}
 
-	private static void setRemote(Git git, String repoName, String remoteName, String defaul)
+	private static boolean setRemote(Git git, String repoName, String remoteName)
 	{
-		String remoteURI = GitUtil.envOr("REMOTE_" + repoName.toUpperCase() + "_" + remoteName.toUpperCase(), defaul);
-		if ("none".equals(remoteURI))
+		String remoteURI = Settings.get("repo." + repoName + "." + remoteName);
+		if (remoteURI.isEmpty())
 		{
-			return;
+			return false;
 		}
 		try
 		{
@@ -173,10 +171,30 @@ public enum Repo
 				.setName(remoteName)
 				.setUri(new URIish(remoteURI))
 				.call();
+
+			return true;
 		}
 		catch (GitAPIException | URISyntaxException e)
 		{
 			throw new RuntimeException(e);
+		}
+	}
+
+	public void pushBranch(String branchName) throws GitAPIException
+	{
+		if (hasOrigin && Settings.getBool("git.push.allowed"))
+		{
+			try (Git git = new Git(repo))
+			{
+				log.info("Pushing {}", branchName);
+				git.push()
+					.setRemote("origin")
+					.setRefSpecs(new RefSpec(branchName + ":" + branchName))
+					.setProgressMonitor(new TextProgressMonitor())
+					.setForce(true)
+					.setThin(true)
+					.call();
+			}
 		}
 	}
 
@@ -193,12 +211,14 @@ public enum Repo
 
 	public void branch(String branchName) throws GitAPIException, IOException
 	{
+		get();
+
 		try (Git git = new Git(get()))
 		{
 			git.branchCreate()
 				.setForce(true)
 				.setName(branchName)
-				.setStartPoint(GitUtil.envOr("BRANCH_POINT_" + name(), "upstream/" + masterBranch))
+				.setStartPoint(Settings.get("repo." + name().toLowerCase() + ".branch_point"))
 				.call();
 		}
 	}

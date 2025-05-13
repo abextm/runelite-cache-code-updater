@@ -178,7 +178,7 @@ public class ScriptUpdate
 				.setStartPoint(Main.branchName)
 				.call();
 			oldDelta.finish(rl, newBranch);
-			GitUtil.pushBranch(rl, newBranch);
+			Repo.RUNELITE.pushBranch(newBranch);
 		}
 		mc.finish(rl, Main.branchName);
 
@@ -191,7 +191,7 @@ public class ScriptUpdate
 				.setStartPoint(Main.branchName)
 				.call();
 			newDelta.finish(rl, newBranch);
-			GitUtil.pushBranch(rl, newBranch);
+			Repo.RUNELITE.pushBranch(newBranch);
 		}
 	}
 

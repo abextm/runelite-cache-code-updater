@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Queue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.cache.codeupdater.git.GitUtil;
+import net.runelite.cache.codeupdater.Settings;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -79,7 +79,7 @@ public class HostSupplier
 		{
 			return hosts.poll();
 		}
-		int preferredLocationCode = Integer.parseInt(GitUtil.envOr("LOCATION_CODE", "0"));
+		int preferredLocationCode = Integer.parseInt(Settings.get("dl.location"));
 		ArrayList<World> worlds = new ArrayList<>();
 		for (int attempt = 0; attempt < 10; attempt++)
 		{
@@ -90,7 +90,7 @@ public class HostSupplier
 					.openConnection();
 				urlConn.setConnectTimeout(2500);
 				urlConn.setReadTimeout(1500);
-				urlConn.setRequestProperty("User-Agent", "RuneLite-Cache-Code-Autoupdater/1.0 (+" + GitUtil.getOwner() + ")");
+				urlConn.setRequestProperty("User-Agent", "RuneLite-Cache-Code-Autoupdater/1.0 (+" + Settings.get("git.commit.owner") + ")");
 				try (DataInputStream ds = new DataInputStream(urlConn.getInputStream()))
 				{
 					ds.readInt(); // len

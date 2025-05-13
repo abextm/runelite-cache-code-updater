@@ -37,9 +37,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
@@ -67,25 +65,6 @@ public final class GitUtil
 	public static RevCommit resolve(Repository repo, String commitish) throws IOException
 	{
 		return repo.parseCommit(repo.resolve(commitish));
-	}
-
-	public static void pushBranch(Repository repo, String branchName) throws GitAPIException
-	{
-		if (Strings.isNullOrEmpty(System.getenv("NO_NETWORK")) &&
-			Strings.isNullOrEmpty(System.getenv("NO_PUSH")))
-		{
-			try (Git git = new Git(repo))
-			{
-				log.info("Pushing {}", branchName);
-				git.push()
-					.setRemote("origin")
-					.setRefSpecs(new RefSpec(branchName + ":" + branchName))
-					.setProgressMonitor(new TextProgressMonitor())
-					.setForce(true)
-					.setThin(true)
-					.call();
-			}
-		}
 	}
 
 	public static Map<String, ObjectId> listDirectory(Repository repo, String commitish, String path, Predicate<String> filter) throws IOException
@@ -156,16 +135,6 @@ public final class GitUtil
 		return new String(b, StandardCharsets.UTF_8);
 	}
 
-	public static String envOr(String name, String defaul)
-	{
-		String override = System.getenv(name);
-		if (Strings.isNullOrEmpty(override))
-		{
-			return defaul;
-		}
-		return override;
-	}
-
 	public static String pathJoin(String a, String b)
 	{
 		if (a.endsWith("/"))
@@ -173,11 +142,6 @@ public final class GitUtil
 			return a + b;
 		}
 		return a + "/" + b;
-	}
-
-	public static String getOwner()
-	{
-		return envOr("COMMIT_OWNER", "mii7303+rlccau@gmail.com");
 	}
 
 	public static void diff(Repository repo, String commita, String commitb) throws GitAPIException, IOException

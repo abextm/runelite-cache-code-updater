@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Setter;
 import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.Settings;
 import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.lib.CommitBuilder;
@@ -185,7 +186,7 @@ public class MutableCommit
 			cb.setTreeId(tree);
 			cb.setMessage(subject + "\n\n" + log.toString());
 
-			PersonIdent author = new PersonIdent("RuneLite Cache-Code Autoupdater", GitUtil.getOwner());
+			PersonIdent author = new PersonIdent("RuneLite Cache-Code Autoupdater", Settings.get("git.commit.owner"));
 			cb.setAuthor(author);
 			cb.setCommitter(author);
 

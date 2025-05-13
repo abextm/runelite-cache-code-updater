@@ -44,6 +44,7 @@ import net.runelite.cache.ItemManager;
 import net.runelite.cache.SpriteManager;
 import net.runelite.cache.TextureManager;
 import net.runelite.cache.codeupdater.Main;
+import net.runelite.cache.codeupdater.Settings;
 import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
@@ -220,7 +221,7 @@ public class SRNUpdate
 			}
 		};
 
-		boolean slowMode = !Strings.isNullOrEmpty(GitUtil.envOr("SLOW_SRN", ""));
+		boolean slowMode = Settings.getBool("srn.slow");
 
 		Main.execAllAndWait(nis.entrySet().stream()
 			.filter(item ->
