@@ -44,6 +44,7 @@ import net.runelite.cache.codeupdater.git.GitUtil;
 import net.runelite.cache.codeupdater.git.MutableCommit;
 import net.runelite.cache.codeupdater.git.Repo;
 import net.runelite.cache.codeupdater.mapper.Mapping;
+import net.runelite.cache.definitions.ScriptDefinition;
 import net.runelite.cache.definitions.loaders.ScriptLoader;
 import net.runelite.cache.fs.Archive;
 import net.runelite.cache.fs.Index;
@@ -143,15 +144,19 @@ public class ScriptUpdate
 
 				Disassembler disassembler = new Disassembler();
 
-				String oldSrcStr = disassembler.disassemble(loader.load(id, oData));
+				ScriptDefinition oldSrc = loader.load(id, oData);
+				String oldSrcStr = disassembler.disassemble(oldSrc);
 				ScriptSource oldSource = new ScriptSource(oldSrcStr);
 				oldDelta.writeFile(scriptFilePath, oldSrcStr);
 
-				String newSrcStr = disassembler.disassemble(loader.load(id, nData));
+				ScriptDefinition newSrc = loader.load(id, nData);
+				String newSrcStr = disassembler.disassemble(newSrc);
 				ScriptSource newSource = new ScriptSource(newSrcStr);
 				newDelta.writeFile(scriptFilePath, newSrcStr);
 
-				String newModSource = updateScript(oldSource, newSource, oldModSource);
+				String newModSource = updateScript(oldSource, newSource, oldModSource,
+					newSrc.getLocalIntCount() - oldSrc.getLocalIntCount(),
+					newSrc.getLocalObjCount() - oldSrc.getLocalObjCount());
 
 				// Just make sure it atleast assembles still
 				try
@@ -196,43 +201,23 @@ public class ScriptUpdate
 	}
 
 	@VisibleForTesting
-	static String updateScript(ScriptSource oldS, ScriptSource newS, ScriptSource oldM)
+	static String updateScript(ScriptSource oldS, ScriptSource newS, ScriptSource oldM, int intLvtIncrement, int objLvtIncrement)
 	{
 		Mapping<ScriptSource.Line> osDom = Mapping.of(oldS.getLines(), oldM.getLines(), new ScriptSourceMapper());
 		Mapping<ScriptSource.Line> osDns = Mapping.of(oldS.getLines(), newS.getLines(), new ScriptSourceMapper());
 
-		Map<String, Integer> defaultLVTIncrement = new HashMap<>();
+		Map<String, Integer> defaultLVTIncrement = Map.of(
+			ILVT, intLvtIncrement,
+			SLVT, objLvtIncrement);
 
 		StringBuilder out = new StringBuilder();
 		out.append(oldM.getPrelude());
 
 		for (String key : oldM.getHeader().keySet())
 		{
-			ScriptSource.Line os = oldS.getHeader().get(key);
 			ScriptSource.Line om = oldM.getHeader().get(key);
-			ScriptSource.Line ns = newS.getHeader().get(key);
 
 			String val = om.getOperand();
-			if (key.endsWith("_count"))
-			{
-				int osv = Integer.parseInt(os.getOperand());
-				int omv = Integer.parseInt(om.getOperand());
-				int nsv = Integer.parseInt(ns.getOperand());
-				int add = nsv - osv;
-				val = "" + (omv + add);
-
-				if (add != 0)
-				{
-					if (".string_var_count".equals(key))
-					{
-						defaultLVTIncrement.put(SLVT, add);
-					}
-					if (".int_var_count".equals(key))
-					{
-						defaultLVTIncrement.put(ILVT, add);
-					}
-				}
-			}
 
 			out.append(String.format("%-19s ", key));
 			out.append(val);

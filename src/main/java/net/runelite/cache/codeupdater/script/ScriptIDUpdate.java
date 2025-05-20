@@ -78,13 +78,13 @@ public class ScriptIDUpdate
 				}
 				ann.getPairs().clear();
 
-				if (script.getIntStackCount() != 0)
+				if (script.getIntArgCount() != 0)
 				{
-					ann.addPair("integer", new IntegerLiteralExpr(script.getIntStackCount()));
+					ann.addPair("integer", new IntegerLiteralExpr(script.getIntArgCount()));
 				}
-				if (script.getStringStackCount() != 0)
+				if (script.getObjArgCount() != 0)
 				{
-					ann.addPair("string", new IntegerLiteralExpr(script.getStringStackCount()));
+					ann.addPair("string", new IntegerLiteralExpr(script.getObjArgCount()));
 				}
 			});
 	}

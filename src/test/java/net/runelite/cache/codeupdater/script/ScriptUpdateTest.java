@@ -79,7 +79,7 @@ public class ScriptUpdateTest
 	@Test
 	public void lvt()
 	{
-		testScript("lvt.txt");
+		testScript("lvt.txt", 1);
 	}
 
 	@Test
@@ -89,6 +89,11 @@ public class ScriptUpdateTest
 	}
 
 	private void testScript(String name)
+	{
+		testScript(name, 0);
+	}
+
+	private void testScript(String name, int intLvtIncrement)
 	{
 		Map<Character, StringBuilder> fis = new HashMap<>();
 		for (char c : new char[]{'s', 'm', 'n', 'f'})
@@ -108,11 +113,12 @@ public class ScriptUpdateTest
 				}
 			});
 
-
 		String out = ScriptUpdate.updateScript(
 			new ScriptSource(fis.get('s').toString()),
 			new ScriptSource(fis.get('n').toString()),
-			new ScriptSource(fis.get('m').toString())
+			new ScriptSource(fis.get('m').toString()),
+			intLvtIncrement,
+			0
 		);
 
 		Assert.assertEquals(fis.get('f').toString(), out);

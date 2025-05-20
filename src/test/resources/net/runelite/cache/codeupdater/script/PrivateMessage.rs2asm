@@ -1,8 +1,6 @@
 smnf .id                 681
-smnf .int_stack_count    0
-smnf .string_stack_count 0
-smnf .int_var_count      2
-smnf .string_var_count   1
+smnf .int_arg_count      0
+smnf .obj_arg_count      0
 smnf    get_varc_int           5
 smnf    iconst                 14
 sm      if_icmpeq              LABEL4

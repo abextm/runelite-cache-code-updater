@@ -1,9 +1,6 @@
 smnf .id                 3238
-smnf .int_stack_count    4
-smnf .string_stack_count 0
-s n  .int_var_count      1
- m f .int_var_count      2 ; +1 for filter result
-smnf .string_var_count   0
+smnf .int_arg_count      4
+smnf .obj_arg_count      0
 smnf iload                  1
 smnf ipop                  
  m f iload                  1
