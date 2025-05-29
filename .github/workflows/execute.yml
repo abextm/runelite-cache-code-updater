@@ -29,7 +29,7 @@ jobs:
       env:
         KEYS: ${{ secrets.KEYS }}
         GIT_PUSH_ALLOWED: ${{ github.event.inputs.git_push_allowed }}
-        SRN_SLOW: ${{ github.events.inputs.srn_slow }}
+        SRN_SLOW: ${{ github.event.inputs.srn_slow }}
       run: |
         set -e -x
         curl -sqL https://api.github.com/repos/abextm/runelite-cache-code-updater/releases/latest \
