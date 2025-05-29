@@ -42,6 +42,7 @@ jobs:
         git.push.allowed=$GIT_PUSH_ALLOWED
         srn.slow=$SRN_SLOW
         EOF
+        cat ci.properties
         export GIT_SSH=ssh
         java -Drlccau.config=ci.properties -cp rlccau.jar net.runelite.cache.codeupdater.Main
     - name: "GC"
