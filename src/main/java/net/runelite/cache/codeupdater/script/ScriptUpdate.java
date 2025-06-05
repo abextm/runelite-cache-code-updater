@@ -219,7 +219,7 @@ public class ScriptUpdate
 
 			String val = om.getOperand();
 
-			out.append(String.format("%-19s ", key));
+			out.append(String.format("%-25s ", key));
 			out.append(val);
 			if (om.getComment() != null)
 			{

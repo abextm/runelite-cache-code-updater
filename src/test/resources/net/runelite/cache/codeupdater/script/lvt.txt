@@ -1,6 +1,6 @@
-smnf .id                 3238
-smnf .int_arg_count      4
-smnf .obj_arg_count      0
+smnf .id                       3238
+smnf .int_arg_count            4
+smnf .obj_arg_count            0
 smnf iload                  1
 smnf ipop                  
  m f iload                  1

@@ -1,6 +1,6 @@
-smnf .id                 0
-smnf .int_arg_count      0
-smnf .obj_arg_count      0
+smnf .id                       0
+smnf .int_arg_count            0
+smnf .obj_arg_count            0
 smnf    jump                   LABEL550
 smnf LABEL368:
  m f    iload                  12 ; message uid

@@ -1,6 +1,6 @@
-smnf .id                 0
-smnf .int_arg_count      0
-smnf .obj_arg_count      0
+smnf .id                       0
+smnf .int_arg_count            0
+smnf .obj_arg_count            0
 smnf    iconst                 0
 smnf    switch                
 smnf       1: LABEL42

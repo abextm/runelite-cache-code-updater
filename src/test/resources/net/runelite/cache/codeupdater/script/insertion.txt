@@ -1,6 +1,6 @@
-smnf .id                 0
-smnf .int_arg_count      0
-smnf .obj_arg_count      0
+smnf .id                       0
+smnf .int_arg_count            0
+smnf .obj_arg_count            0
 smnf    a                      1
  m f    b                      2
 smnf    c                      3

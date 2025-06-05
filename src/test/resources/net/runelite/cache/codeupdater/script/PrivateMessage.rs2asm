@@ -1,6 +1,6 @@
-smnf .id                 681
-smnf .int_arg_count      0
-smnf .obj_arg_count      0
+smnf .id                       681
+smnf .int_arg_count            0
+smnf .obj_arg_count            0
 smnf    get_varc_int           5
 smnf    iconst                 14
 sm      if_icmpeq              LABEL4
